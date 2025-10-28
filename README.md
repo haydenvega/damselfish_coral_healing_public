@@ -20,9 +20,8 @@ Repository for the publication: *Coral‑Associated Fishes Accelerate Coral Woun
   - [3. Data versions](#3-data-versions)  
 - [Methodological Information](#methodological-information)  
   - [1. Study goals](#1-study-goals)  
-  - [2. Description of methods](#2-description-of-methods)  
-  - [3. Methods for processing the data](#3-methods-for-processing-the-data)  
-  - [4. Description of quality-assurance procedures performed on the data](#4-description-of-quality-assurance-procedures-performed-on-the-data)  
+  - [2. Description of methods](#2-description-of-methods)   
+  - [3. Description of quality-assurance procedures performed on the data](#4-description-of-quality-assurance-procedures-performed-on-the-data)  
 - [Variable Descriptions (Data Dictionary)](#variable-descriptions-data-dictionary)  
 - [Citations](#citations)
 
@@ -116,19 +115,26 @@ This is the first publicly released version of the dataset (Version 1.0).
 The study aimed to evaluate how the presence of damselfish and the size of induced wounds influence tissue regeneration, volume/buoyant weight increase, and photosynthetic recovery in coral fragments of Pocillopora spp.
 
 ### 2. Description of methods
-Coral fragments were wounded (no wound, small wound, large wound) and placed either with or without damselfish. Buoyant weight and surface area were measured initially and at final timepoints; analyses combined allometric modelling (log‑log mixed‑effects), surface‑area and time‑standardised growth (mg/cm²/day), and treatment effect testing.
 
-### 3. Methods for processing the data
-Data were cleaned using R:  
-- Imported as CSV, cleaned with `janitor::clean_names()`  
-- Filtered to remove excluded coral IDs  
-- Merged weight, surface area, and tank metadata  
-- Computed derived variables (e.g., delta mass, log transforms, growth rates)  
-- Fitted mixed‐effects models using `lme4::lmer()`  
-- Conducted likelihood‐ratio tests and produced figures  
-- Final figure outputs were edited using Adobe Illustrator
+#### Study site and system
+August 2024, Richard B. Gump South Pacific Research Station, Mo’orea, French Polynesia (17°30′S, 149°50′W). Experiment tested effects of yellowtail damselfish (Dascyllus flavicaudus) on wound regeneration and photosynthetic recovery in Pocillopora spp. Summary statistics reported as mean ± SD.
 
-### 4. Description of quality‑assurance procedures performed on the data
+#### Collection and experimental setup
+72 Pocillopora fragments (from mature colonies >20 cm) and 18 adult D. flavicaudus were collected from a northshore lagoon reef and transported to Gump Field Station. Fragments mounted on ceramic plugs and randomly distributed across six 95 L flow‑through tanks (12 fragments/tank; flow ≈ 6 L h−1). After 3 days acclimation, fragments were assigned to control (no wound), small wound (1.48 ± 0.40 cm2), or large wound (3.82 ± 1.08 cm2); 4 fragments per treatment per tank. Six fish (≈36 g total biomass) were added to half the tanks (n = 3); remaining tanks were fishless controls. All tanks fed 2 g TetraMarine flakes three times daily; uneaten food removed after 10 min.
+
+#### Measurements and endpoints
+- Wound healing: photographs (Olympus TG‑6) immediately and on day 21; areas measured in ImageJ; wound scored healed/unhealed. Healing rate = (initial_area − final_area)/21 (cm2 day−1).  
+- Growth: buoyant weight measured day 1 and day 21 (Davies 1989); surface area via wax‑dip calibration; growth rate = (final_weight − initial_weight)/(surface_area × 21) (mg cm−2 day−1).  
+- Photosynthesis: dark‑adapted Fv/Fm measured day 21 with Diving‑PAM (Walz); measurement location: upper face for controls, adjacent to wound for wounded fragments. Algae near wounds removed in 8 fragments; effect of algae on Fv/Fm non‑significant (p = 0.106).
+
+#### Data processing and analysis
+Data cleaned in R (janitor::clean_names()); derived variables computed (delta mass, growth rates, log transforms). Mixed‑effects models fitted with lme4::lmer() using tank as a random intercept; likelihood‑ratio tests used for model comparison. All raw data, cleaning scripts, cleaned outputs, and analysis Rmds are included in the repository.
+
+#### Ethics and permits
+Field collection and experiments conducted under relevant permits and institutional approvals [insert permit numbers and issuing authorities].
+
+
+### 3. Description of quality‑assurance procedures performed on the data
 Raw data were double‑checked for entry errors. Missing or damaged fragments are coded as `NA`. The experimental design was verified for initial size equivalence across treatments.
 
 ## Variable Descriptions (Data Dictionary)
