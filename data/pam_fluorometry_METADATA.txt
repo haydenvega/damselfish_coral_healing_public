@@ -1,0 +1,359 @@
+================================================================================
+METADATA: PAM Fluorometry Datasets
+================================================================================
+
+This metadata file covers THREE related PAM fluorometry datasets:
+  1. pam_undisturbed_healed_tissue_wound_no_wound.csv (PRIMARY)
+  2. pam_undisturbed_healed.csv
+  3. pam_healed.csv
+
+
+GENERAL INFORMATION
+================================================================================
+
+Dataset Title: Coral Photosynthetic Efficiency - PAM Fluorometry Measurements
+
+Principal Investigators:
+  - Hayden Vega
+  - Adrian Stier
+
+Date of Data Collection: August 29, 2024 (Day 21 of experiment)
+
+Geographic Location: Mo'orea, French Polynesia
+
+Related Publications: [To be added]
+
+Repository: damselfish_coral_healing_public
+
+
+METHODOLOGICAL INFORMATION
+================================================================================
+
+Measurement Technique: Pulse-Amplitude Modulated (PAM) Fluorometry
+
+Equipment: [PAM fluorometer model]
+
+Protocol:
+  1. Corals dark-adapted for 15-30 minutes
+  2. Minimum fluorescence (F0) measured with weak modulated light
+  3. Saturating pulse applied to close all reaction centers
+  4. Maximum fluorescence (Fm) measured during saturating pulse
+  5. Variable fluorescence (Fv) calculated: Fv = Fm - F0
+  6. Quantum efficiency calculated: Fv/Fm = (Fm - F0) / Fm
+
+Target Metric: Fv/Fm Ratio
+  - Represents maximum quantum efficiency of photosystem II
+  - Healthy corals: Fv/Fm = 0.60-0.70 (reported as 600-700 in some datasets)
+  - Stressed corals: Fv/Fm < 0.50
+  - Used as indicator of photosynthetic health
+
+Tissue Sampling Strategies:
+  1. Undisturbed tissue: Coral tissue away from wound site
+  2. Healed tissue: New tissue that grew over wound site
+  3. Both: Combined measurements from both tissue types
+
+Quality Control:
+  - Multiple measurements per coral when possible
+  - Dark adaptation time standardized
+  - Measurements taken at same time of day
+  - Algae presence noted
+
+
+EXPERIMENTAL DESIGN
+================================================================================
+
+Experiment: Effects of damselfish presence and wound size on coral photosynthetic efficiency
+
+Treatments:
+  1. Fish Presence (2 levels):
+     - Fish: Dascyllus damselfish present
+     - No Fish: No fish present
+
+  2. Wound Size (3 levels):
+     - No Wound: Unwounded control
+     - Small: ~1 cm² wound
+     - Large: ~3 cm² wound
+
+Replication: 72 coral fragments (12 per treatment combination)
+
+Duration: Measurements at Day 21 (end of experiment)
+
+Species: Pocillopora spp.
+
+Hypothesis:
+  Fish presence may enhance coral photosynthetic efficiency through:
+    - Nutrient provisioning (ammonium)
+    - Protection from algal competitors
+    - Reduced stress
+
+
+================================================================================
+DATASET 1: pam_undisturbed_healed_tissue_wound_no_wound.csv (PRIMARY)
+================================================================================
+
+Description:
+  COMPREHENSIVE dataset including ALL corals and BOTH tissue types
+  (undisturbed and healed). This is the primary dataset for Fish × Wound
+  analysis including no-wound controls.
+
+File Format: CSV
+
+Number of Records: 72 rows (all corals)
+
+File Size: ~3 KB
+
+Analysis Scripts:
+  - analysis_visualization_code/photo_eff/pam_analysis.Rmd (PRIMARY)
+
+Variable List:
+
+1. coral_id
+   Type: Numeric (treated as categorical)
+   Range: 45-130
+   Notes: All 72 corals included
+
+2. f0
+   Description: Minimum fluorescence (dark-adapted, reaction centers open)
+   Type: Continuous
+   Range: 150-500 arbitrary units
+   Units: Fluorescence units (arbitrary)
+
+3. fm
+   Description: Maximum fluorescence (dark-adapted, saturating pulse)
+   Type: Continuous
+   Range: 500-1500 arbitrary units
+   Units: Fluorescence units (arbitrary)
+
+4. fv_fm
+   Description: Variable fluorescence ratio (quantum efficiency)
+   Type: Continuous
+   Range: 500-800 (representing 0.50-0.80)
+   Units: Dimensionless (×1000 in this dataset)
+   Calculation: (fm - f0) / fm
+   Notes: Divide by 1000 to get standard 0-1 scale
+          Healthy Pocillopora: typically 0.60-0.70 (600-700)
+
+5. wound
+   Description: Wound size treatment
+   Type: Categorical
+   Values: "No Wound", "Small", "Large"
+   Notes: All three levels included (unlike other PAM files)
+
+6. fish
+   Description: Fish presence treatment
+   Type: Categorical
+   Values: "Fish", "No Fish"
+
+7. tank
+   Description: Tank number for random effects
+   Type: Categorical
+   Range: 1-12
+
+8. initial_wound_size
+   Description: Initial wound area (cm²)
+   Type: Continuous
+   Range: 0.7-6.9 cm² for wounded corals, NA for no-wound
+   Units: cm²
+   Notes: Many missing values for no-wound controls
+
+9. algae
+   Description: Presence of algal colonization on coral
+   Type: Categorical
+   Values: "yes", "no"
+   Notes: 8 corals developed algae (7 No Fish, 1 Fish)
+
+10. healed_tissue
+    Description: Whether measurement is from healed tissue
+    Type: Categorical
+    Values: "yes", "no"
+    Notes: "yes" indicates measurement taken on regenerated wound tissue
+
+Uses:
+  - Primary dataset for main Fish × Wound effects
+  - Includes no-wound controls for complete factorial design
+  - Tests systemic effects on coral photosynthetic health
+
+
+================================================================================
+DATASET 2: pam_undisturbed_healed.csv
+================================================================================
+
+Description:
+  UNDISTURBED TISSUE ONLY from all corals including no-wound controls.
+  Measurements taken away from wound sites.
+
+File Format: CSV
+
+Number of Records: 72 rows (all corals)
+
+File Size: ~2.5 KB
+
+Variable List:
+  Same as Dataset 1, EXCEPT:
+    - NO "algae" column
+    - NO "healed_tissue" column (all measurements from undisturbed tissue)
+
+Uses:
+  - Test effects on systemic/whole-coral photosynthetic health
+  - Compare with healed tissue measurements
+  - Control for localized wound effects
+
+
+================================================================================
+DATASET 3: pam_healed.csv
+================================================================================
+
+Description:
+  HEALED TISSUE ONLY from WOUNDED corals (no-wound controls excluded).
+  Measurements taken specifically on tissue that regenerated over wounds.
+
+File Format: CSV
+
+Number of Records: 48 rows (wounded corals only)
+
+File Size: ~1.9 KB
+
+Variable List:
+  Same as Dataset 1, INCLUDING "algae" column
+  EXCLUDES: "No Wound" corals (only Small and Large wounds)
+
+Uses:
+  - Test recovery of photosynthetic function in regenerated tissue
+  - Test algae effects on Fv/Fm (confounded with fish treatment)
+  - Compare healed vs. undisturbed tissue within same coral
+
+
+DATA QUALITY & NOTES
+================================================================================
+
+Fv/Fm Scaling:
+  - Values reported as 500-800 (multiply by 0.001 to get 0.5-0.8)
+  - Standard Fv/Fm scale is 0-1
+  - Healthy Pocillopora: 0.60-0.70
+
+Algal Colonization:
+  - 8 corals developed algae during experiment
+  - Heavily biased toward No Fish treatment (7 of 8)
+  - Tested as potential confound - NOT significant (p = 0.106)
+  - Algae data only in pam_healed.csv and comprehensive dataset
+
+Missing Data:
+  - initial_wound_size: NA for no-wound controls (expected)
+  - Some blank cells in initial_wound_size column
+
+Statistical Considerations:
+  - Tank used as random effect in all models
+  - Fv/Fm treated as continuous response
+  - Normal distribution appropriate after model diagnostics
+  - DHARMa diagnostics show good model fit
+
+
+SUMMARY STATISTICS
+================================================================================
+
+Overall Fv/Fm Range: 500-800 (0.50-0.80)
+
+Mean Fv/Fm by Treatment (×1000 scale):
+  From pam_undisturbed_healed_tissue_wound_no_wound.csv:
+    - No Fish, No Wound: 683.6 ± 12.06
+    - No Fish, Small: 657.0 ± 43.46
+    - No Fish, Large: 633.1 ± 35.68
+    - Fish, No Wound: 685.9 ± 11.63
+    - Fish, Small: 674.0 ± 27.00
+    - Fish, Large: 684.4 ± 11.62
+
+Pattern:
+  - Fish treatment shows higher Fv/Fm than No Fish
+  - Wound size shows some reduction, especially in No Fish treatment
+  - Fish appears to buffer wound stress effects
+
+
+STATISTICAL ANALYSIS
+================================================================================
+
+Model Structure:
+  fv_fm ~ fish * wound + (1 | tank)
+
+Where:
+  - Response: fv_fm (photosynthetic efficiency, 0-1000 scale)
+  - Fixed effects: fish (2 levels) × wound (3 levels)
+  - Random effect: tank (12 levels)
+
+Model Type: Linear mixed-effects model (lme4::lmer)
+
+Hypothesis Tests:
+  - Fish effect: Likelihood ratio test
+  - Wound effect: Likelihood ratio test
+  - Fish × Wound interaction: Likelihood ratio test
+
+Results (from pam_analysis.Rmd):
+  - Fish: SIGNIFICANT effect
+  - Wound: Measurable effects
+  - Interaction: NOT significant
+
+Diagnostics:
+  - DHARMa simulated residuals (n=1000)
+  - QQ plots: Normal distribution appropriate
+  - Residual plots: Homoscedastic, no patterns
+
+
+DATASET SELECTION GUIDE
+================================================================================
+
+Use pam_undisturbed_healed_tissue_wound_no_wound.csv when:
+  ✓ Testing main Fish × Wound effects
+  ✓ Including no-wound controls in analysis
+  ✓ Comprehensive analysis of all treatments
+  ✓ PRIMARY ANALYSIS (this is the main dataset)
+
+Use pam_undisturbed_healed.csv when:
+  ✓ Testing systemic effects on undisturbed tissue
+  ✓ Excluding direct wound tissue measurements
+  ✓ Comparing undisturbed tissue across treatments
+
+Use pam_healed.csv when:
+  ✓ Analyzing regenerated tissue specifically
+  ✓ Testing algae effects (only dataset with algae variable)
+  ✓ Comparing Small vs. Large wounds only (no controls)
+
+
+USAGE & ACCESS
+================================================================================
+
+Data Usage License: [To be specified]
+
+Recommended Citation:
+  Vega, H. & Stier, A. (2024). Coral photosynthetic efficiency measurements
+  from damselfish-coral healing experiment. PAM fluorometry datasets.
+
+Contact Information:
+  - Hayden Vega: [email]
+  - Adrian Stier: [email]
+
+
+ADDITIONAL INFORMATION
+================================================================================
+
+Related Datasets:
+  - Wound healing: final_wound_size_dascyllus_project - Sheet1.csv
+  - Skeletal growth: fish_regen_buoyantweight (1).csv
+
+Analysis Details:
+  See pam_analysis.Rmd for complete workflow
+
+Software Used:
+  - R version 4.5+
+  - Packages: tidyverse, lme4, DHARMa, here, gt, ggplot2
+
+PAM Fluorometry References:
+  - Maxwell & Johnson (2000) Chlorophyll fluorescence—a practical guide
+  - Ralph & Gademann (2005) Rapid light curves: A powerful tool to assess
+    photosynthetic activity
+
+Date of Metadata Creation: 2024-10-28
+
+Date of Last Update: 2024-10-28
+
+================================================================================
+END OF METADATA
+================================================================================

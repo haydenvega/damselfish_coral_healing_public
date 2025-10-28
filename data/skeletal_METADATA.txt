@@ -1,0 +1,247 @@
+================================================================================
+METADATA: skeletal.xlsx
+================================================================================
+
+GENERAL INFORMATION
+================================================================================
+
+Dataset Title: Coral Skeletal Growth - Calculated Metrics
+
+Principal Investigators:
+  - Hayden Vega
+  - Adrian Stier
+
+Date of Data Collection: August 13 - September 1, 2024
+
+Geographic Location: Mo'orea, French Polynesia
+
+Related Publications: [To be added]
+
+Repository: damselfish_coral_healing_public
+
+
+DATA & FILE OVERVIEW
+================================================================================
+
+File Name: skeletal.xlsx
+
+File Format: Microsoft Excel (.xlsx)
+
+Sheet Name: "Sheet 1"
+
+Number of Records: 144 rows (72 corals × 2 timepoints)
+
+File Size: ~33 KB
+
+Related Files:
+  - fish_regen_buoyantweight (1).csv (source data, CSV format)
+  - coral_delta.csv (processed growth deltas)
+
+Analysis Scripts Using This File:
+  - None directly (CSV version used in analyses)
+
+
+METHODOLOGICAL INFORMATION
+================================================================================
+
+Description:
+This Excel file contains the same buoyant weight measurements as the CSV file
+(fish_regen_buoyantweight (1).csv) plus additional calculated columns for
+seawater density, stopper density, dry mass, and coral volume.
+
+Relationship to CSV File:
+  - First 12 columns identical to fish_regen_buoyantweight (1).csv
+  - Columns 13-18 contain derived metrics calculated from raw measurements
+
+Purpose:
+  - Intermediate calculations for skeletal mass and volume
+  - Quality control and verification of derived metrics
+  - Archive of calculation steps
+
+Calculation Method:
+  1. Calculate seawater density from temperature and salinity
+  2. Calculate calibration stopper density from air/water weights
+  3. Calculate coral dry mass from buoyant weight and densities
+  4. Calculate coral volume from dry mass and aragonite density
+  5. Calculate growth deltas between initial and final timepoints
+
+
+EXPERIMENTAL DESIGN
+================================================================================
+
+Experiment: Effects of damselfish presence on coral wound healing and growth
+
+Factors:
+  1. Fish Presence: Fish vs. No Fish
+  2. Wound Size: No Wound, Small (~1 cm²), Large (~3 cm²)
+
+Replication: 72 coral fragments (12 per treatment combination)
+
+Duration: 21 days
+
+Species: Pocillopora spp.
+
+
+DATA-SPECIFIC INFORMATION
+================================================================================
+
+Number of Variables: 18
+
+Number of Observations: 144
+
+Missing Data Codes: None
+
+Variable List:
+
+COLUMNS 1-12: Same as fish_regen_buoyantweight (1).csv
+  See fish_regen_buoyantweight_(1)_METADATA.txt for detailed descriptions
+
+COLUMNS 13-18: Derived Metrics
+
+13. density_stopper
+    Description: Calculated density of calibration standard
+    Type: Continuous
+    Range: ~2.2-2.3 g/cm³
+    Units: g/cm³
+    Calculation: air_weight / ((air_weight - fresh_weight) / ρ_freshwater)
+    Notes: Used to verify measurement accuracy
+
+14. density_sw
+    Description: Calculated density of seawater
+    Type: Continuous
+    Range: 0.987-0.988 g/cm³
+    Units: g/cm³
+    Calculation: Temperature-dependent using standard oceanographic equations
+    Notes: Varies with temperature and salinity
+
+15. dry_mass
+    Description: Calculated skeletal dry mass of coral
+    Type: Continuous
+    Range: ~15-55 g
+    Units: grams (g)
+    Calculation: bouyantweight_g × (ρ_aragonite / (ρ_aragonite - density_sw))
+    Notes: Primary metric for skeletal mass
+
+16. coral_vol
+    Description: Calculated volume of coral skeleton
+    Type: Continuous
+    Range: ~8-30 cm³
+    Units: cubic centimeters (cm³)
+    Calculation: dry_mass / ρ_aragonite
+    Notes: Assumes uniform aragonite density (2.93 g/cm³)
+
+17. dry_mass_delta
+    Description: Change in skeletal dry mass
+    Type: Continuous
+    Range: -5 to +15 g (mostly positive)
+    Units: grams (g)
+    Calculation: Final dry_mass - Initial dry_mass
+    Notes: Negative values indicate measurement error or tissue loss
+
+18. vol_delta
+    Description: Change in coral skeleton volume
+    Type: Continuous
+    Range: -2 to +8 cm³ (mostly positive)
+    Units: cubic centimeters (cm³)
+    Calculation: Final coral_vol - Initial coral_vol
+    Notes: Directly proportional to dry_mass_delta
+
+
+DATA QUALITY & NOTES
+================================================================================
+
+Advantages of Excel Format:
+  - Preserves formulas showing calculation steps
+  - Easier for visual inspection and QC
+  - Can include multiple sheets (though only one used here)
+
+Disadvantages:
+  - Not machine-readable in analysis scripts
+  - Potential for formula errors
+  - Version control issues
+
+Recommendation:
+  Use CSV version (fish_regen_buoyantweight (1).csv) for all analyses.
+  Use this Excel file for:
+    - Verifying calculations
+    - Quality control
+    - Understanding calculation workflow
+
+Known Issues:
+  - None identified
+
+Quality Checks Performed:
+  - Negative growth values inspected (corals 45, 91 removed as outliers)
+  - Extreme values flagged (coral 103)
+  - Density calculations verified against oceanographic tables
+
+
+CALCULATIONS & FORMULAS
+================================================================================
+
+Seawater Density (density_sw):
+  Based on temperature using standard seawater equation of state
+  Typical range at 26-27°C: 0.987-0.988 g/cm³
+
+Stopper Density (density_stopper):
+  Formula: ρ_stopper = M_air / V_stopper
+  Where: V_stopper = (M_air - M_fresh) / ρ_freshwater
+  Expected value: ~2.2-2.3 g/cm³ (rubber stopper)
+
+Dry Mass (dry_mass):
+  Formula: M_dry = M_buoyant × (ρ_aragonite / (ρ_aragonite - ρ_sw))
+  This derives from: M_dry = (M_buoyant × ρ_aragonite) / (ρ_aragonite - ρ_sw)
+  Where:
+    - M_buoyant = measured buoyant weight
+    - ρ_aragonite = 2.93 g/cm³
+    - ρ_sw = calculated seawater density
+
+Coral Volume (coral_vol):
+  Formula: V_coral = M_dry / ρ_aragonite
+  Assumes entire skeleton is aragonite (valid for Pocillopora)
+
+Growth Deltas (dry_mass_delta, vol_delta):
+  Calculated by matching coral_id between initial and final timepoints
+  Delta = Final value - Initial value
+  Positive delta = growth
+  Negative delta = measurement error or actual tissue loss
+
+
+USAGE & ACCESS
+================================================================================
+
+Data Usage License: [To be specified]
+
+Recommended Citation:
+  Vega, H. & Stier, A. (2024). Coral skeletal growth calculated metrics.
+  Dataset: skeletal.xlsx
+
+Contact Information:
+  - Hayden Vega: [email]
+  - Adrian Stier: [email]
+
+
+ADDITIONAL INFORMATION
+================================================================================
+
+Software Requirements:
+  - Microsoft Excel 2016 or later
+  - OR: LibreOffice Calc, Google Sheets, R (readxl package)
+
+Import to R:
+  library(readxl)
+  data <- read_excel("skeletal.xlsx", sheet = "Sheet 1")
+
+Relationship to Analysis Pipeline:
+  Raw measurements → This file (calculations) → coral_delta.csv → Analysis
+
+For analysis workflow, see:
+  - allometric_growth_analysis.Rmd
+
+Date of Metadata Creation: 2024-10-28
+
+Date of Last Update: 2024-10-28
+
+================================================================================
+END OF METADATA
+================================================================================

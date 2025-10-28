@@ -1,0 +1,419 @@
+================================================================================
+METADATA: Mastersheet Files (Treatment Assignments & Metadata)
+================================================================================
+
+This metadata file covers TWO mastersheet files:
+  1. fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv
+  2. Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv
+
+
+GENERAL INFORMATION
+================================================================================
+
+Dataset Title: Experimental Treatment Assignments and Coral Metadata
+
+Principal Investigators:
+  - Hayden Vega
+  - Adrian Stier
+
+Date Created: August 2024
+
+Geographic Location: Mo'orea, French Polynesia
+
+Related Publications: [To be added]
+
+Repository: damselfish_coral_healing_public
+
+
+PURPOSE
+================================================================================
+
+These files serve as the MASTER RECORD of:
+  - Treatment assignments (Fish × Wound factorial design)
+  - Tank assignments (blocking/random effects)
+  - Coral collection and fragmentation dates
+  - Surface area measurements (SA file only)
+  - Wound closure outcomes
+  - Necrosis status
+  - Experimental notes
+
+These are REFERENCE files used to:
+  - Link corals to treatments across all analyses
+  - Provide tank information for random effects in models
+  - Document surface area for growth standardization
+  - Record qualitative outcomes (wound closure, necrosis)
+
+
+================================================================================
+FILE 1: fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv
+================================================================================
+
+Description:
+  COMPREHENSIVE mastersheet including surface area data (SA_cal).
+  Primary source for treatment assignments and surface area values.
+
+File Format: CSV
+
+Number of Records: 72 corals
+
+File Size: ~3.4 KB
+
+Analysis Scripts Using This File:
+  - allometric_growth_analysis.Rmd (primary source for SA_cal)
+  - wound_closure_analysis.Rmd (treatment assignments)
+  - pam_analysis.Rmd (treatment assignments)
+
+Variable List:
+
+1. coral_id
+   Description: Unique identifier for each coral fragment
+   Type: Numeric (treated as categorical)
+   Range: 45-130 (not consecutive)
+   Units: N/A
+   Notes: 72 unique corals; primary key for all datasets
+
+2. date_collected
+   Description: Date coral was collected from reef
+   Type: Date (stored as YYYYMMDD integer)
+   Value: 20240808 (all corals)
+   Units: N/A
+   Format: YYYYMMDD
+   Notes: All corals collected August 8, 2024
+
+3. date_fragment
+   Description: Date coral was fragmented for experiment
+   Type: Date (stored as YYYYMMDD integer)
+   Values: 20240808 or 20240809
+   Units: N/A
+   Format: YYYYMMDD
+   Notes: Most fragmented Aug 8, some Aug 9 (day after collection)
+
+4. fish
+   Description: Fish presence treatment
+   Type: Binary categorical
+   Values: 0 = No Fish, 1 = Fish
+   Units: N/A
+   Notes: Main experimental factor
+          Fish = Dascyllus damselfish (3-4 individuals per tank)
+
+5. wound
+   Description: Wound size treatment
+   Type: Categorical
+   Values: 0 = No Wound, 1 = Small, 2 = Large
+   Units: N/A
+   Notes: Main experimental factor
+          Small ≈ 1 cm², Large ≈ 3 cm²
+
+6. tank
+   Description: Tank number for blocking
+   Type: Categorical
+   Range: 1-12
+   Units: N/A
+   Notes: 6 corals per tank (one per treatment combination)
+          Used as random effect: (1 | tank)
+
+7. wound_close
+   Description: Wound closure status at end of experiment
+   Type: Categorical
+   Values: "yes", "no", "NA"
+   Units: N/A
+   Notes: "NA" for no-wound controls
+          "yes" = complete closure, "no" = partial healing
+
+8. necrosis
+   Description: Whether necrosis occurred during experiment
+   Type: Categorical
+   Values: "yes", "no"
+   Units: N/A
+   Notes: Tissue death/bleaching observed
+          Relatively rare outcome
+
+9. SA_cal
+   Description: Calibrated surface area from wax dipping
+   Type: Continuous
+   Range: 25-320 cm² (most 40-110 cm²)
+   Units: square centimeters (cm²)
+   Source: From coral_sa.csv (wax dipping calibration)
+   Notes: Used for size-standardized growth calculations
+          KEY VARIABLE for allometric scaling
+
+10. notes
+    Description: Experimental notes and observations
+    Type: Free text
+    Examples: "tank 1 all wounds closed", "[coral ID] subbed out"
+    Notes: Documents substitutions, observations, issues
+
+
+================================================================================
+FILE 2: Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv
+================================================================================
+
+Description:
+  SIMPLIFIED mastersheet WITHOUT surface area data.
+  Used primarily for tank assignments in statistical models.
+
+File Format: CSV
+
+Number of Records: 72 corals
+
+File Size: ~2.6 KB
+
+Analysis Scripts Using This File:
+  - allometric_growth_analysis.Rmd (source for tank random effects)
+
+Variable List:
+  Same as File 1, EXCEPT:
+    - NO SA_cal column
+    - Column order slightly different (wound_close and necrosis at end)
+
+Variables (in order):
+  1. coral_id
+  2. date_collected
+  3. date_fragment
+  4. fish
+  5. wound
+  6. tank
+  7. notes
+  8. wound_close
+  9. necrosis
+
+Purpose:
+  - Provide tank assignments for random effects
+  - Lighter file without surface area data
+  - Backup/redundancy for treatment assignments
+
+Why Two Files?
+  - File 1: Added SA_cal data after initial mastersheet created
+  - File 2: Original file preserved for tank info
+  - Both contain same core treatment data
+  - File naming suggests File 2 is "Copy of" File 1
+
+
+TREATMENT STRUCTURE
+================================================================================
+
+Experimental Design: 2 × 3 Factorial
+
+Factor 1: Fish Presence (2 levels)
+  - Fish (fish = 1): Dascyllus damselfish present
+    - 3-4 adult damselfish per tank
+    - Fish allowed to interact naturally with corals
+  - No Fish (fish = 0): No fish present
+    - Control tanks without fish
+
+Factor 2: Wound Size (3 levels)
+  - No Wound (wound = 0): Unwounded control
+    - No artificial damage to coral
+  - Small (wound = 1): ~1 cm² wound
+    - Created with biopsy punch or drill
+    - Target area 1 cm²
+  - Large (wound = 2): ~3 cm² wound
+    - Created with larger tool
+    - Target area 3 cm²
+
+Replication:
+  - 12 corals per treatment combination
+  - 72 corals total (2 × 3 × 12 = 72)
+
+Blocking:
+  - 12 tanks (experimental blocks)
+  - 6 corals per tank (one per treatment combination)
+  - Tank used as random effect in all models
+
+Randomization:
+  - Treatment combinations randomly assigned to corals within tanks
+  - Tanks positioned to minimize environmental gradients
+
+
+CODING CONVENTIONS
+================================================================================
+
+Fish:
+  - Numeric: 0 = No Fish, 1 = Fish
+  - Factor: "No Fish", "Fish" (used in analyses)
+  - Factor levels ordered: "No Fish" → "Fish"
+
+Wound:
+  - Numeric: 0 = No Wound, 1 = Small, 2 = Large
+  - Factor: "No Wound", "Small", "Large" (used in analyses)
+  - Factor levels ordered: "No Wound" → "Small" → "Large"
+
+Tank:
+  - Numeric: 1-12
+  - Treated as categorical factor in models
+  - Random effect: (1 | tank)
+
+Wound Closure:
+  - "yes" = Wound completely closed by Day 21
+  - "no" = Wound still visible at Day 21
+  - "NA" = No wound treatment (control corals)
+
+Necrosis:
+  - "yes" = Tissue necrosis observed during experiment
+  - "no" = No necrosis observed
+
+
+DATA QUALITY & NOTES
+================================================================================
+
+Treatment Balance:
+  - Each tank contains exactly one coral per treatment combination
+  - Perfect balance: 12 replicates per treatment
+  - No missing cells in design
+
+Coral Substitutions:
+  - Some notes indicate coral substitutions (e.g., "128 subbed out 89")
+  - Substitutions made early in experiment due to mortality/damage
+  - Final dataset reflects substituted corals
+
+Surface Area Data Quality:
+  - SA_cal from calibrated wax dipping (see wax_dip_surface_area_METADATA.txt)
+  - Most corals: 40-110 cm²
+  - Outlier: Coral 103 (319.4 cm², removed from analyses)
+  - Precision: ±5-10% (estimated from calibration curve)
+
+Known Issues:
+  - Some notes contain "#NAME?" (Excel formula errors, does not affect data)
+  - Wound closure is qualitative ("yes"/"no"), quantitative data in other file
+  - Date format as YYYYMMDD integers (convert if needed)
+
+Missing Data:
+  - No missing treatment assignments
+  - No missing tank assignments
+  - wound_close = "NA" for no-wound controls (expected, not missing)
+
+
+RELATIONSHIP TO OTHER DATASETS
+================================================================================
+
+These mastersheet files link to all other datasets via coral_id:
+
+Buoyant Weight Data:
+  fish_regen_buoyantweight (1).csv
+    → Join on coral_id
+    → Provides: Skeletal mass measurements
+
+Wound Healing Data:
+  final_wound_size_dascyllus_project - Sheet1.csv
+    → Join on coral_id
+    → Provides: Quantitative wound healing rates
+    → Subset: Only wounded corals (wound = 1 or 2)
+
+PAM Data:
+  pam_undisturbed_healed_tissue_wound_no_wound.csv (and related)
+    → Join on coral_id
+    → Provides: Photosynthetic efficiency measurements
+
+Surface Area Data:
+  coral_sa.csv
+    → SA_cal already incorporated in File 1
+    → Join on coral_id if using File 2
+
+
+USAGE GUIDELINES
+================================================================================
+
+Use File 1 (with SA_cal) when:
+  ✓ Need surface area for growth analysis
+  ✓ Performing allometric scaling
+  ✓ One-stop file for treatment + surface area
+
+Use File 2 (without SA_cal) when:
+  ✓ Only need tank assignments for random effects
+  ✓ Want lighter file without surface area
+  ✓ Cross-checking treatment assignments
+
+Both files provide:
+  ✓ Treatment assignments (fish, wound)
+  ✓ Tank assignments (blocking)
+  ✓ Coral metadata (dates, notes)
+  ✓ Qualitative outcomes (wound_close, necrosis)
+
+In R Analysis:
+  # File 1 (with surface area)
+  library(tidyverse)
+  library(here)
+  sa_data <- read_csv(here("data",
+    "fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv"))
+
+  # File 2 (tank info only)
+  tank_data <- read_csv(here("data",
+    "Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv"))
+
+  # Convert numeric codes to factors
+  sa_data <- sa_data %>%
+    mutate(
+      fish = factor(fish, levels = c(0, 1), labels = c("No Fish", "Fish")),
+      wound = factor(wound, levels = c(0, 1, 2),
+                     labels = c("No Wound", "Small", "Large")),
+      tank = factor(tank)
+    )
+
+
+STATISTICAL USAGE
+================================================================================
+
+Treatment Factors:
+  All analyses use these as fixed effects:
+    - fish (2 levels)
+    - wound (3 levels)
+    - fish × wound interaction
+
+Random Effects:
+  Tank used as random intercept in all models:
+    lmer(response ~ fish * wound + (1 | tank), data = ...)
+
+Rationale:
+  - Tank accounts for environmental variation between tanks
+  - Corals within same tank share environment (non-independence)
+  - Random intercept allows baseline to vary by tank
+  - Reduces Type I error rate
+
+Model Formula:
+  response ~ fish * wound + (1 | tank)
+
+Where response is:
+  - healing_rate (wound_closure_analysis.Rmd)
+  - allometric_growth (allometric_growth_analysis.Rmd)
+  - fv_fm (pam_analysis.Rmd)
+
+
+USAGE & ACCESS
+================================================================================
+
+Data Usage License: [To be specified]
+
+Recommended Citation:
+  Vega, H. & Stier, A. (2024). Experimental treatment assignments and
+  coral metadata from damselfish-coral healing experiment. Mastersheet files.
+
+Restrictions: None (pending publication)
+
+Contact Information:
+  - Hayden Vega: [email]
+  - Adrian Stier: [email]
+
+
+ADDITIONAL INFORMATION
+================================================================================
+
+Related Metadata Files:
+  - fish_regen_buoyantweight_(1)_METADATA.txt (skeletal mass)
+  - final_wound_size_dascyllus_project_METADATA.txt (wound healing)
+  - pam_fluorometry_METADATA.txt (photosynthetic efficiency)
+  - wax_dip_surface_area_METADATA.txt (surface area methods)
+
+Complete Analysis Workflow:
+  See README.md in main repository for full pipeline
+
+Software Used:
+  - R version 4.5+
+  - Packages: tidyverse, here, janitor
+
+Date of Metadata Creation: 2024-10-28
+
+Date of Last Update: 2024-10-28
+
+================================================================================
+END OF METADATA
+================================================================================

@@ -1,0 +1,321 @@
+================================================================================
+METADATA: final_wound_size_dascyllus_project - Sheet1.csv
+================================================================================
+
+GENERAL INFORMATION
+================================================================================
+
+Dataset Title: Coral Wound Healing - Final Measurements and Healing Rates
+
+Principal Investigators:
+  - Hayden Vega
+  - Adrian Stier
+
+Date of Data Collection:
+  - Initial wounds: August 8-9, 2024 (Day 0)
+  - Final measurements: August 29, 2024 (Day 21)
+
+Geographic Location: Mo'orea, French Polynesia
+
+Related Publications: [To be added]
+
+Repository: damselfish_coral_healing_public
+
+
+DATA & FILE OVERVIEW
+================================================================================
+
+File Name: final_wound_size_dascyllus_project - Sheet1.csv
+
+File Format: Comma-separated values (CSV)
+
+Number of Records: 48 rows (wounded corals only)
+
+File Size: ~3 KB
+
+Related Files:
+  - fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv (metadata)
+  - Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv (tank info)
+
+Analysis Scripts Using This File:
+  - analysis_visualization_code/wound/wound_closure_analysis.Rmd
+
+
+METHODOLOGICAL INFORMATION
+================================================================================
+
+Description:
+This dataset contains wound size measurements at the beginning (Day 0) and
+end (Day 21) of the experiment, along with calculated healing metrics. Only
+corals that received artificial wounds are included (Small and Large treatments).
+
+Measurement Method:
+  1. Initial wounds created using biopsy punch or drill
+     - Small wounds: targeted ~1 cm² area
+     - Large wounds: targeted ~3 cm² area
+  2. Wound area measured using digital calipers and/or image analysis
+  3. Final wound area measured at Day 21
+  4. Healing rate calculated as change in area per day
+
+Measurement Units:
+  - Wound area: square centimeters (cm²)
+  - Healing rate: cm² per day
+  - Percent healed: 0-100%
+
+Quality Control:
+  - Multiple measurements averaged when available
+  - Photos taken for verification
+  - Observer: [Name]
+
+
+EXPERIMENTAL DESIGN
+================================================================================
+
+Experiment: Effects of damselfish presence on coral wound healing
+
+Treatments:
+  1. Fish Presence (2 levels):
+     - Fish (coded as 1): Dascyllus damselfish present in tank
+     - No Fish (coded as 0): No fish present
+
+  2. Wound Size (2 levels in this dataset):
+     - Small (coded as 1): ~1 cm² wound
+     - Large (coded as 2): ~3 cm² wound
+
+Note: No-wound controls are excluded from this dataset (see mastersheet files)
+
+Replication: 48 wounded corals
+  - 12 corals per treatment combination (2 fish × 2 wound = 4 groups)
+
+Experimental Units: Individual coral fragments
+
+Blocking: 12 tanks (4 wounded corals per tank)
+
+Duration: 21 days
+
+Species: Pocillopora spp. (branching coral)
+
+Hypothesis:
+  Fish presence facilitates wound healing through nutrient provisioning
+  (ammonium excretion) and/or protection from algal colonization
+
+
+DATA-SPECIFIC INFORMATION
+================================================================================
+
+Number of Variables: 11
+
+Number of Observations: 48
+
+Missing Data Codes: None (all measurements complete)
+
+Variable List:
+
+1. coral_id
+   Description: Unique identifier for each coral fragment
+   Type: Numeric (treated as categorical)
+   Range: 45-130 (not consecutive)
+   Units: N/A
+   Notes: 48 corals with wounds (excludes 24 no-wound controls)
+
+2. date_collected
+   Description: Date coral was collected from reef
+   Type: Date (stored as YYYYMMDD integer)
+   Value: 20240808
+   Units: N/A
+   Notes: All corals collected on same date
+
+3. date_fragment
+   Description: Date coral was fragmented for experiment
+   Type: Date (stored as YYYYMMDD integer)
+   Values: 20240808 or 20240809
+   Units: N/A
+   Notes: Most fragmented Aug 8, some Aug 9
+
+4. fish
+   Description: Fish presence treatment
+   Type: Binary categorical
+   Values: 0 = No Fish, 1 = Fish
+   Units: N/A
+   Notes: Converted to factor ("No Fish", "Fish") in analysis
+
+5. wound
+   Description: Wound size treatment
+   Type: Binary categorical
+   Values: 1 = Small, 2 = Large
+   Units: N/A
+   Notes: No 0 values (no-wound controls excluded)
+            Converted to factor ("Small", "Large") in analysis
+
+6. tank
+   Description: Tank number for blocking/random effects
+   Type: Categorical
+   Range: 1-12
+   Units: N/A
+   Notes: Used as random effect in mixed-effects models
+
+7. wound_size_final
+   Description: Wound area at Day 21 (end of experiment)
+   Type: Continuous
+   Range: 0-4.5 cm²
+   Units: square centimeters (cm²)
+   Notes: Zero indicates complete wound closure
+          Many small wounds healed completely (wound_size_final = 0)
+
+8. percent healed
+   Description: Percentage of wound that healed
+   Type: Continuous
+   Range: 0-100
+   Units: percent (%)
+   Calculation: ((initial_wound_size_cm - wound_size_final) / initial_wound_size_cm) × 100
+   Notes: 100% indicates complete healing
+          Column name has space (use backticks or clean_names() in R)
+
+9. initial_wound_size_cm
+   Description: Wound area at Day 0 (start of experiment)
+   Type: Continuous
+   Range: 0.7-6.9 cm²
+   Units: square centimeters (cm²)
+   Notes: Target was ~1 cm² for Small, ~3 cm² for Large
+          Actual sizes vary due to coral morphology
+
+10. healing_rate
+    Description: Daily rate of wound closure
+    Type: Continuous
+    Range: 0-0.33 cm²/day
+    Units: cm² per day
+    Calculation: (initial_wound_size_cm - wound_size_final) / time_healing_days
+    Notes: Primary response variable in wound healing analysis
+           Higher values = faster healing
+
+11. time_healing_days
+    Description: Duration of healing period
+    Type: Constant
+    Value: 21
+    Units: days
+    Notes: All corals measured at same timepoint (Day 21)
+
+
+DATA QUALITY & NOTES
+================================================================================
+
+Complete Wound Closure:
+  - Many corals achieved 100% wound closure (wound_size_final = 0)
+  - More common in Small wound treatment
+  - More common in Fish treatment (hypothesis supported)
+
+Wound Size Variability:
+  - Initial wound sizes vary within treatment due to coral morphology
+  - Small wounds: 0.7-2.6 cm² (target ~1 cm²)
+  - Large wounds: 2.5-6.9 cm² (target ~3 cm²)
+  - This variability is natural and analyzed using healing rate (not just final size)
+
+Statistical Considerations:
+  - Healing rate accounts for initial wound size differences
+  - Tank included as random effect in models
+  - Some corals show very rapid healing (potential outliers, but biologically valid)
+
+Known Issues:
+  - Column name "percent healed" has space (use clean_names() in R)
+  - Some "#NAME?" errors may appear in notes (Excel formula errors)
+
+Data Transformations Used in Analysis:
+  - Proportion healed calculated: percent_healed / 100
+  - Beta regression used for proportion data (0-1 bounded)
+  - Tank treated as random effect: lmer(healing_rate ~ fish * wound + (1|tank))
+
+
+SUMMARY STATISTICS
+================================================================================
+
+Healing Rate by Treatment (mean ± SD):
+  - No Fish × Small: [calculated in analysis]
+  - No Fish × Large: [calculated in analysis]
+  - Fish × Small: [calculated in analysis]
+  - Fish × Large: [calculated in analysis]
+
+Percent Complete Closure (wound_size_final = 0):
+  - Small wounds: ~60-70%
+  - Large wounds: ~20-30%
+  - Fish treatment: Higher closure rate than No Fish
+
+Range of Healing Rates:
+  - Minimum: 0 cm²/day (no healing)
+  - Maximum: ~0.33 cm²/day
+  - Median: ~0.10 cm²/day
+
+
+STATISTICAL ANALYSIS
+================================================================================
+
+Model Structure:
+  healing_rate ~ fish * wound + (1 | tank)
+
+Where:
+  - Response: healing_rate (cm²/day)
+  - Fixed effects: fish (2 levels) × wound (2 levels)
+  - Random effect: tank (12 tanks)
+
+Model Type: Linear mixed-effects model (lme4::lmer)
+
+Hypothesis Tests:
+  - Main effect of fish: Likelihood ratio test (LRT)
+  - Main effect of wound: Likelihood ratio test (LRT)
+  - Fish × Wound interaction: Likelihood ratio test (LRT)
+
+Diagnostics:
+  - DHARMa simulated residuals (n=1000 simulations)
+  - QQ plots
+  - Residual vs. fitted plots
+
+Alternative Analysis:
+  Proportion healed analyzed using beta regression (glmmTMB)
+  for bounded response variable (0-1)
+
+
+USAGE & ACCESS
+================================================================================
+
+Data Usage License: [To be specified]
+
+Recommended Citation:
+  Vega, H. & Stier, A. (2024). Coral wound healing measurements from
+  damselfish-coral healing experiment. Dataset:
+  final_wound_size_dascyllus_project - Sheet1.csv
+
+Restrictions: None (pending publication)
+
+Contact Information:
+  - Hayden Vega: [email]
+  - Adrian Stier: [email]
+
+
+ADDITIONAL INFORMATION
+================================================================================
+
+Related Datasets in This Repository:
+  - Skeletal growth: fish_regen_buoyantweight (1).csv
+  - Photosynthetic efficiency: pam_undisturbed_healed_tissue_wound_no_wound.csv
+  - Surface area: fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv
+
+Analysis Details:
+  See wound_closure_analysis.Rmd for complete analytical workflow including:
+    - Data preparation and cleaning
+    - Statistical models
+    - Publication-quality figures
+    - DHARMa diagnostics
+
+Software Used:
+  - R version 4.5+
+  - Packages: tidyverse, lme4, glmmTMB, DHARMa, here, janitor
+
+Key Findings:
+  [To be added after publication]
+
+Date of Metadata Creation: 2024-10-28
+
+Date of Last Update: 2024-10-28
+
+================================================================================
+END OF METADATA
+================================================================================
