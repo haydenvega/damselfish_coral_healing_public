@@ -1,0 +1,277 @@
+---
+title: "pam_analysis"
+author: "Hayden Vega & Adrian Stier"
+date: "2025-05-30"
+output: html_document
+description: An analysis of PAM data from the damselfish coral healing project. Included are LRTs and visualizations. 
+---
+
+# Setup
+```{r}
+#............................packages............................
+library(janitor)
+library(tidyverse)
+library(viridis)
+library(lme4)
+library(ggeffects)
+library(sjlabelled)
+library(DHARMa)
+library(parameters)
+library(effects)
+library(MuMIn)
+library(here)
+library(tidyverse)
+library(gt)
+library(broom.mixed)
+library(ggpubr)
+
+
+#..........................loading data..........................
+pam_healed <- read.csv(here("data", "pam_healed.csv"))
+
+pam_undisturbed_tissue_wound_no_wound <- read.csv(here("data", "pam_undisturbed_healed.csv"))
+
+pam_undisturbed_healed_tissue_wound_no_wound <- read.csv(here("data","pam_undisturbed_healed_tissue_wound_no_wound.csv"))
+
+#.......................loading aesthetics.......................
+wound_palette <- c("Large" = "#ffbf00", 
+                   "Small" = "#be8333", 
+                   "No Wound" = "#f57a38" )
+fish_palette <- c("Fish" = "#2b4b52", 
+                  "No Fish" = "#ad301a")
+pam_undisturbed_healed_tissue_wound_no_wound$fish <- factor(
+  pam_undisturbed_healed_tissue_wound_no_wound$fish,
+  levels = c("No Fish", "Fish"))
+
+pam_undisturbed_healed_tissue_wound_no_wound$wound <- factor(
+  pam_undisturbed_healed_tissue_wound_no_wound$wound,
+  levels = c("Large", "Small", "No Wound")  # desired order
+)
+pam_healed <- pam_healed %>%
+  mutate(
+    wound = factor(wound, levels = c("Small", "Large")),
+    fish = factor(fish, levels = c("No Fish", "Fish"))
+  )
+```
+
+
+
+
+#Stastical analysis for FV/Fm and fish/wound significance.
+### Fitting Mixed Effect Models
+```{r}
+
+# Full Model
+rate_full_no_wound <- lmer(
+  fv_fm ~ fish * wound + (1 | tank),
+  data = pam_undisturbed_healed_tissue_wound_no_wound
+)
+
+
+rate_no_interaction_no_wound <- lmer(
+  fv_fm ~ fish + wound + (1 | tank),  # 
+  data = pam_undisturbed_healed_tissue_wound_no_wound
+)
+
+
+rate_no_fish_no_wound <- lmer(
+  fv_fm ~ wound + (1 | tank),  # 
+  data = pam_undisturbed_healed_tissue_wound_no_wound
+)
+
+rate_no_wound_no_wound <- lmer(
+  fv_fm ~ fish + (1 | tank),  
+  data = pam_undisturbed_healed_tissue_wound_no_wound
+)
+
+
+lrt_interaction_zero_rate_no_wound <- anova(rate_no_interaction_no_wound, rate_full_no_wound, test = "Chisq")
+lrt_fish_zero_rate_no_wound <- anova(rate_no_fish_no_wound, rate_no_interaction_no_wound, test = "Chisq")
+lrt_wound_zero_rate_no_wound <- anova(rate_no_wound_no_wound, rate_no_interaction_no_wound, test = "Chisq")
+
+lrt_table_fv_fm_all <- tibble(
+  Test = c("Interaction (Fish × Wound)", "Fish Effect", "Wound Effect"),
+  ChiSq = c(lrt_interaction_zero_rate_no_wound$Chisq[2],
+            lrt_fish_zero_rate_no_wound$Chisq[2],
+            lrt_wound_zero_rate_no_wound$Chisq[2]),
+  Df = c(lrt_interaction_zero_rate_no_wound$Df[2],
+         lrt_fish_zero_rate_no_wound$Df[2],
+         lrt_wound_zero_rate_no_wound$Df[2]),
+  p_value = c(lrt_interaction_zero_rate_no_wound$`Pr(>Chisq)`[2],
+              lrt_fish_zero_rate_no_wound$`Pr(>Chisq)`[2],
+              lrt_wound_zero_rate_no_wound$`Pr(>Chisq)`[2])
+) %>%
+  mutate(across(where(is.numeric), round, 3))
+
+# Format with gt
+lrt_table_fv_fm_all %>%
+  gt() %>%
+  tab_header(
+    title = "Table #. Likelihood Ratio Tests for Effects on Fv/Fm",
+    #subtitle = paste("Scaled growth:", expression((final - initial)/initial^b))
+  ) %>%
+  cols_label(
+    Test = "Model Comparison",
+    ChiSq = "Chi-squared",
+    Df = "Degrees of Freedom",
+    p_value = "P-value"
+  ) %>%
+  fmt_number(columns = vars(ChiSq, p_value), decimals = 3) %>%
+  tab_options(
+    table.font.size = 14,
+    heading.title.font.size = 16,
+    heading.subtitle.font.size = 13
+  )
+
+```
+
+## Averaging values for the above data
+```{r}
+# Wounds
+fv_fm_avg_wound <- pam_undisturbed_healed_tissue_wound_no_wound %>%
+  group_by(wound) %>%
+  summarize(mean_fv_fm = mean(fv_fm, na.rm = TRUE), 
+  sd_wound_rate = sd(fv_fm, na.rm = TRUE),
+            n = n()) 
+# small = 665.5 +/- 36.43
+# large = 658.7 +/- 36.86
+# NW = 684.7 +/- 11.64
+
+#Fish
+rate_avg_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>% 
+  group_by(fish) %>% 
+  summarize(mean_fv_fm = mean(fv_fm, na.rm = TRUE), 
+  sd_fish_rate = sd(fv_fm, na.rm = TRUE), 
+            n = n())
+#no_fish = 657.9 */- 38.41
+#fish = 681.4 +/- 15.53
+
+# Interaction
+pam_avg <- pam_undisturbed_healed_tissue_wound_no_wound %>% 
+  group_by(fish, wound) %>% 
+  summarize(mean_fv_fm = mean(fv_fm, na.rm = TRUE), 
+            sd_both_rate = sd(fv_fm, na.rm = TRUE), 
+            n = n())
+# NF, S = 657.0, 43.46
+# NF, L = 633.1, 35.68
+#NF, NW = 683.5833, 12.06
+#F, S = 674.0, 27.001
+#F, L = 684.4, 11.62
+#F, NW = 685.9, 11.63
+```
+
+
+
+
+#Algae influences on fv/fm
+##Visualizing Corals with Algae
+```{r}
+ggplot(pam_healed, aes(x = algae, y = fv_fm, fill = fish))+
+  geom_boxplot()+
+  geom_jitter()
+
+ggplot(pam_healed, aes(x = algae, y = fv_fm, fill = wound))+
+  geom_boxplot()+
+  geom_jitter()
+
+#SUMMARY HERE IS THAT THERE ARE 1 FISH & ALGAE CORAL, 7 NO FISH AND ALGAE CORALS
+#OVERALL PHOTOSYNTHETIC EFFICIENCY IS LOWER, PROBABLY BECAUSE THEY'RE NO FISH
+#IF ALGAE DID PLAY A ROLE, THEN IT should BE HIGHER ? 
+
+```
+
+##Use models to determine if there is an algae effect
+```{r}
+# Full Model 
+mod_int_algae <- lmer(fv_fm ~ fish * wound * algae + (1 | tank), data = pam_healed)
+
+# Additive model without interaction
+mod_add_algae <- lmer(fv_fm ~ fish * wound + algae + (1 | tank), data = pam_healed)
+
+# Fish-only model
+mod_algae <- lmer(fv_fm ~ algae + (1 | tank), data = pam_healed)
+
+
+
+##LRT TESTS
+
+lrt_interaction_algae <- anova(mod_algae, mod_int_algae, test = "Chisq")
+lrt_algae <- anova(mod_algae, mod_add_algae, test = "Chisq")
+
+view(lrt_algae)
+
+#NO SIGNIFICANT effect of algae p value = 0.106
+
+```
+
+
+# Summary line by wound & fish
+```{r}
+pam_line_plot_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>% 
+  ggplot(aes(x = wound, y = fv_fm, color = fish, group = fish, shape = fish)) +
+  
+  # Jittered points, dodged by fish
+  geom_jitter(
+    alpha = 0.25,
+    size = 2.5, 
+    position = position_jitterdodge(
+      jitter.width = 0.1, 
+      dodge.width = 0.6
+    )
+  ) +
+  
+  # Mean points per fish (dodged)
+  stat_summary(
+    fun = mean, 
+    geom = "point", 
+    size = 5, 
+    position = position_dodge(width = 0.6)
+  ) +
+  
+  # Error bars (mean ± SD, dodged, no horizontal caps)
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = mean(x),
+        ymin = mean(x) - sd(x),
+        ymax = mean(x) + sd(x)
+      )
+    },
+    geom = "errorbar",
+    width = 0,                
+    size = 1,
+    position = position_dodge(width = 0.6)
+  ) +
+  
+  # Color palette
+  scale_color_manual(values = fish_palette) +
+  scale_shape_manual(values = c(16,18))+
+  
+  # Y-axis limits
+  scale_y_continuous(limits = c(500, 800)) +
+  
+  # Labels & theme
+  labs(
+    y = "Photosynthetic Efficiency (Fv/Fm)",
+    x = "Wound Size"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 15, face = "bold"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 10),
+    legend.position = "none",
+    axis.line.x = element_line(color = "black", size = 0.5),
+    axis.line.y = element_line(color = "black", size = 0.5)
+  )
+
+ggsave(
+  filename = here("figures", "pam", "summary_line_fv_fm_by_wound_fish.pdf"),
+  plot = pam_line_plot_fish,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+```
+
