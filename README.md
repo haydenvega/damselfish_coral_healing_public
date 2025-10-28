@@ -139,54 +139,56 @@ Raw data were double‐checked for entry errors. Missing or damaged fragments ar
 Missing entries are indicated by `NA`. Missingness occurred when fragments were damaged, measurements failed, or tanks were compromised.
 
 ### 6. Variable Descriptions
-📊 Data Dictionary
-This section describes the variables included in each dataset used in the project.
 
-🧪 final_wound_size_dascyllus_project - Sheet1.csv
-|  |  | 
-| coral_id |  | 
-| date_collected |  | 
-| date_fragment |  | 
-| fish | 10 | 
-| wound | 12 | 
-| tank |  | 
-| wound_size_final |  | 
-| percent healed |  | 
-| initial_wound_size_cm |  | 
-| healing_rate |  | 
-| time_healing_days |  | 
+### final_wound_size_dascyllus_project - Sheet1.csv
 
+| Variable | Description |
+|---|---|
+| `coral_id` | Unique identifier for each coral fragment |
+| `date_collected` | Date the coral fragment was collected |
+| `date_fragment` | Date the coral was fragmented |
+| `fish` | Presence of fish (`1` = fish present, `0` = no fish) |
+| `wound` | Wound treatment group (`1` = small wound, `2` = large wound) |
+| `tank` | Tank number where the coral was housed |
+| `wound_size_final` | Final wound size in centimeters |
+| `percent healed` | Percentage of wound healed over the experiment duration |
+| `initial_wound_size_cm` | Initial wound size in centimeters |
+| `healing_rate` | Rate of healing per day (cm/day) |
+| `time_healing_days` | Duration of healing period in days |
 
+---
 
-⚖️ fish_regen_buoyantweight (1).csv
-|  |  | 
-| date | initialfinal | 
-| coral_id |  | 
-| bouyantweight_g |  | 
-| air_temp_c |  | 
-| air_weight_g |  | 
-| fresh_temp_c |  | 
-| fresh_weight_g |  | 
-| salt_temp_c |  | 
-| salt_weight_g |  | 
-| density_aragonite |  | 
-| wound | SmallLargeNo Wound | 
-| fish | FishNo Fish | 
+### fish_regen_buoyantweight (1).csv
 
+| Variable | Description |
+|---|---|
+| `date` | Measurement time point (`initial` or `final`) |
+| `coral_id` | Unique identifier for each coral fragment |
+| `bouyantweight_g` | Coral buoyant weight in grams |
+| `air_temp_c` | Air temperature during weighing (°C) |
+| `air_weight_g` | Coral weight in air (grams) |
+| `fresh_temp_c` | Temperature of fresh water during weighing (°C) |
+| `fresh_weight_g` | Coral weight in fresh water (grams) |
+| `salt_temp_c` | Temperature of salt water during weighing (°C) |
+| `salt_weight_g` | Coral weight in salt water (grams) |
+| `density_aragonite` | Density of aragonite used for buoyant weight calculations (g/cm³) |
+| `wound` | Wound treatment group (`Small`, `Large`, or `No Wound`) |
+| `fish` | Fish treatment group (`Fish` or `No Fish`) |
 
+---
 
-🌿 pam_healed.csv
-|  |  | 
-| coral_id |  | 
-| f0 |  | 
-| fm |  | 
-| fv_fm |  | 
-| wound | SmallLarge | 
-| fish | FishNo Fish | 
-| tank |  | 
-| initial_wound_size |  | 
-| algae | yesno | 
+### pam_healed.csv
 
+| Variable | Description |
+|---|---|
+| `coral_id` | Unique identifier for each coral fragment |
+| `f0` | Initial fluorescence reading (Fo) |
+| `fm` | Maximum fluorescence reading (Fm) |
+| `fv_fm` | Photosynthetic efficiency (Fv/Fm ratio) |
+| `wound` | Wound treatment group (`Small` or `Large`) |
+| `fish` | Fish treatment group (`Fish` or `No Fish`) |
+| `tank` | Tank number where the coral was housed |
+| `initial_wound_size` | Initial wound size in centimeters |
+| `algae` | Presence of algae (`yes` or `no`) |
 
-
-
+---
