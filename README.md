@@ -1,5 +1,5 @@
 # Damselfish‑Coral Healing Project
-Experimental dataset and analysis code supporting Vega & Stier (2025), *Coral‑Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. Contact: Hayden Vega (haydenvega@ucsb.edu). Data & code: https://github.com/haydenvega/damselfish_coral_healing_public (v1.0). License: CC BY 4.0. DOI: [pending].
+Experimental dataset and analysis code supporting Vega & Stier (2025), *Coral‑Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. Contact: Hayden Vega (haydenvega@ucsb.edu). [Data & code](https://github.com/haydenvega/damselfish_coral_healing_public) (v1.0). License: CC BY 4.0. DOI: [pending].
 
 
 ## Table of Contents
