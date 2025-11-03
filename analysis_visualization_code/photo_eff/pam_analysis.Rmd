@@ -122,23 +122,13 @@ cat("✓ All packages loaded successfully\n")
 #------------------------------------------------------------------------------#
 # Data Import
 #------------------------------------------------------------------------------#
-# Three datasets with different tissue sampling strategies:
-# 1. pam_healed: Only healed tissue from wounded corals
-# 2. pam_undisturbed_tissue_wound_no_wound: Undisturbed tissue from all corals
-# 3. pam_undisturbed_healed_tissue_wound_no_wound: Comprehensive dataset
-
-pam_healed <- read.csv(here("data", "pam_healed.csv"))
-
-pam_undisturbed_tissue_wound_no_wound <- read.csv(
-  here("data", "pam_undisturbed_healed.csv")
-)
+# 3. pam_undisturbed_healed_tissue_wound_no_wound: Comprehensive dataset includes data for corals with no wounds and wounds.
 
 pam_undisturbed_healed_tissue_wound_no_wound <- read.csv(
   here("data", "pam_undisturbed_healed_tissue_wound_no_wound.csv")
 )
 
 cat("✓ PAM data imported successfully\n")
-cat("  - pam_healed:", nrow(pam_healed), "observations\n")
 cat("  - pam_undisturbed_healed_tissue_wound_no_wound:",
     nrow(pam_undisturbed_healed_tissue_wound_no_wound), "observations\n")
 ```
@@ -170,12 +160,6 @@ pam_undisturbed_healed_tissue_wound_no_wound <- pam_undisturbed_healed_tissue_wo
   mutate(
     fish = factor(fish, levels = c("No Fish", "Fish")),
     wound = factor(wound, levels = c("No Wound", "Small", "Large"))
-  )
-
-pam_healed <- pam_healed %>%
-  mutate(
-    wound = factor(wound, levels = c("Small", "Large")),
-    fish = factor(fish, levels = c("No Fish", "Fish"))
   )
 
 cat("✓ Visual aesthetics configured\n")
@@ -334,9 +318,9 @@ fv_fm_avg_wound <- pam_undisturbed_healed_tissue_wound_no_wound %>%
 
 cat("Fv/Fm by Wound Size:\n")
 print(fv_fm_avg_wound)
-# No Wound: 684.7 ± 11.64
-# Small:    665.5 ± 36.43
-# Large:    658.7 ± 36.86
+# No Wound: 0.6847500 0.01164791
+# Small:    0.6655417 ± 0.03643097
+# Large:    0.6587917 ± 0.03686282
 
 # By fish presence
 fv_fm_avg_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>%
@@ -349,8 +333,8 @@ fv_fm_avg_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>%
 
 cat("\nFv/Fm by Fish Presence:\n")
 print(fv_fm_avg_fish)
-# No Fish: 657.9 ± 38.41
-# Fish:    681.4 ± 15.53
+# No Fish: 0.6579444 ± 0.03841499
+# Fish:    0.6814444 ± 0.01852943
 
 # By interaction (fish × wound)
 pam_avg_interaction <- pam_undisturbed_healed_tissue_wound_no_wound %>%
@@ -364,12 +348,12 @@ pam_avg_interaction <- pam_undisturbed_healed_tissue_wound_no_wound %>%
 
 cat("\nFv/Fm by Fish × Wound Interaction:\n")
 print(pam_avg_interaction)
-# No Fish, No Wound: 683.6 ± 12.06
-# No Fish, Small:    657.0 ± 43.46
-# No Fish, Large:    633.1 ± 35.68
-# Fish, No Wound:    685.9 ± 11.63
-# Fish, Small:       674.0 ± 27.00
-# Fish, Large:       684.4 ± 11.62
+# No Fish, No Wound: 0.6835833 ± 0.01205637
+# No Fish, Small:    0.6570833 ± 0.04346254
+# No Fish, Large:    0.6331667 ± 0.03568507
+# Fish, No Wound:    0.6859167 ± 0.01163426
+# Fish, Small:       0.6740000 ± 0.02701851
+# Fish, Large:       0.6844167 ± 0.01162645
 ```
 
 ---
@@ -517,7 +501,7 @@ pam_line_plot_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>%
   ) +
 
   # Y-axis limits
-  scale_y_continuous(limits = c(500, 800)) +
+  scale_y_continuous(limits = c(0.5, 0.75)) +
 
   # Labels and theme
   labs(
@@ -750,6 +734,6 @@ sessionInfo()
 **Key Findings:**
 - Fish presence significantly affects coral photosynthetic efficiency (Fv/Fm)
 - Wound size shows measurable effects on photosynthetic performance
-- No significant fish × wound interaction detected
+- Significant fish × wound interaction detected
 - Algal colonization did not significantly confound results (p = 0.106)
 - Model diagnostics indicate good fit with no major assumption violations
