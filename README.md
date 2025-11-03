@@ -1,514 +1,197 @@
-![Damselfish and Coral](images/DAFL-photo.jpeg)
+# Damselfish‑Coral Healing Project
+Experimental dataset and analysis code supporting Vega & Stier (2025), *Coral‑Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. Contact: Hayden Vega (haydenvega@ucsb.edu). [Data & code](https://github.com/haydenvega/damselfish_coral_healing_public) (v1.0). License: CC BY 4.0. DOI: [pending].
 
-# Damselfish-Coral Healing: Experimental Dataset & Analysis Code
-
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![DOI](https://img.shields.io/badge/DOI-pending-blue.svg)](#)
-[![R Version](https://img.shields.io/badge/R-%E2%89%A54.5.0-blue.svg)](https://www.r-project.org/)
-
-**Supporting:** Vega, H. & Stier, A. (2025). *Coral-Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Journal pending].
-
-**Authors:** Hayden Vega (haydenvega@ucsb.edu) & Adrian Stier (astier@ucsb.edu)
-**Institution:** University of California Santa Barbara
-**Version:** 1.0
-**Last Updated:** October 2024
-
----
 
 ## Table of Contents
-
-- [Overview](#overview)
-- [Repository Structure](#repository-structure)
-- [Installation & Requirements](#installation--requirements)
-- [Quick Start](#quick-start)
-- [Data Documentation](#data-documentation)
-- [Analysis Workflow](#analysis-workflow)
-- [Key Findings](#key-findings)
-- [Citation](#citation)
-- [Funding & Acknowledgments](#funding--acknowledgments)
-- [License](#license)
-- [Contact](#contact)
-
----
-
-## Overview
-
-This repository contains all data, analysis code, and documentation for an experimental study investigating how coral-associated damselfish (*Dascyllus flavicaudus*) influence wound healing and photosynthetic recovery in branching corals (*Pocillopora* spp.).
-
-### Research Questions
-
-1. **Do damselfish accelerate coral wound healing?**
-2. **How does wound size affect coral skeletal growth rates?**
-3. **Does fish presence buffer coral photosynthetic stress from wounding?**
-
-### Experimental Design
-
-- **Location:** Mo'orea, French Polynesia (Gump Research Station)
-- **Duration:** 21-day mesocosm experiment (August 2024)
-- **Design:** 2 × 3 factorial (Fish Presence × Wound Size)
-  - **Fish:** Present vs. Absent (6 *D. flavicaudus* per tank)
-  - **Wound:** No Wound, Small (~1.5 cm²), Large (~3.8 cm²)
-- **Replication:** 72 coral fragments across 12 flow-through tanks
-- **Response Variables:**
-  - Wound healing rate (cm²/day)
-  - Size-corrected skeletal growth (allometric scaling)
-  - Photosynthetic efficiency (Fv/Fm)
+- [General Information](#general-information)  
+  - [1. Authors](#1-authors)  
+  - [2. Dates of data collection](#2-dates-of-data-collection)  
+  - [3. Location of data collection](#3-location-of-data-collection)  
+  - [4. Funding Sources](#4-funding-sources)  
+- [Sharing / Access Information](#sharing--access-information)  
+  - [1. Licenses / restrictions placed on the data](#1-licenses--restrictions-placed-on-the-data)  
+  - [2. Links to publications that cite or use the data](#2-links-to-publications-that-cite-or-use-the-data)  
+  - [3. Links to other publicly accessible locations of the data](#3-links-to-other-publicly-accessible-locations-of-the-data)  
+  - [4. Links / relationships to ancillary datasets](#4-links--relationships-to-ancillary-datasets)  
+  - [5. Data derivation](#5-data-derivation)  
+  - [6. Recommended citation for this dataset](#6-recommended-citation-for-this-dataset)  
+- [Data and File Overview](#data-and-file-overview)  
+  - [1. File list](#1-file-list)  
+  - [2. Relationship between files](#2-relationship-between-files)  
+  - [3. Data versions](#3-data-versions)  
+- [Methodological Information](#methodological-information)  
+  - [1. Study goals](#1-study-goals)  
+  - [2. Description of methods](#2-description-of-methods)   
+  - [3. Description of quality-assurance procedures performed on the data](#4-description-of-quality-assurance-procedures-performed-on-the-data)  
+- [Variable Descriptions (Data Dictionary)](#variable-descriptions-data-dictionary)  
+- [Citations](#citations)
 
 ---
 
-## Repository Structure
+## General Information
 
+### 1. Authors
+- Hayden Vega, University of California Santa Barbara, haydenvega@ucsb.edu  
+- Adrian Stier, University of California Santa Barbara, astier@ucsb.edu
+
+### 2. Dates of data collection
+2024-06-27 to 2024-09-06
+
+### 3. Location of data collection
+Specimens were collected in Mo’orea, French Polynesia (Moorea Coastal Research Long‑Term Ecological Research site: MRB). Laboratory measurements were conducted at Gump Field Station.
+
+### 4. Funding Sources
+Supported by the Keck Foundation and the National Science Foundation (OCE-1851510 and OCE-1851032). This work was also facilitated by resources provided by the NSF-funded Moorea Coral Reef Long-term Ecological Research program funded by OCE-1637396 and previous awards. Student funding came from the UCSB Worster Fellowship.
+
+---
+
+## Sharing / Access Information
+
+### 1. Licenses / restrictions placed on the data
+Data are shared under the Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/.
+
+### 2. Links to publications that cite or use the data
+Vega, H. & Stier, A. (2025). *Coral‑Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Journal reference pending].
+
+### 3. Links to other publicly accessible locations of the data
+N/A
+
+### 4. Links / relationships to ancillary datasets
+N/A
+
+### 5. Data derivation
+The dataset is primary experimental data generated as part of this project, not derived from secondary sources.
+
+### 6. Recommended citation for this dataset
+Vega, H. & Stier, A. 2025. Damselfish–Coral Healing Experimental Dataset. coral wound healing & photosynthetic recovery experiment. Repository: https://github.com/haydenvega/damselfish_coral_healing_public.
+
+---
+
+## Data and File Overview
+
+### 1. File list
 ```
-damselfish_coral_healing_public/
-│
-├── data/                              # All experimental datasets
-│   ├── DATA_METADATA.txt              # Comprehensive data documentation
-│   ├── *_METADATA.txt                 # Individual metadata files for each dataset
-│   ├── fish_regen_buoyantweight (1).csv   # Skeletal mass measurements
-│   ├── final_wound_size_dascyllus_project - Sheet1.csv  # Wound healing data
-│   ├── pam_undisturbed_healed_tissue_wound_no_wound.csv  # PAM fluorometry
-│   ├── fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv  # Metadata
-│   ├── wax_dip_*.csv                  # Surface area measurements
-│   └── ... [see Data Documentation section]
-│
-├── analysis_visualization_code/      # Analysis scripts
-│   ├── wound/
-│   │   └── wound_closure_analysis.Rmd      # Wound healing analysis
+├── data/
+│   ├── Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv
+│   ├── coral_delta.csv
+│   ├── coral_sa.csv
+│   ├── final_wound_size_dascyllus_project - Sheet1.csv
+│   ├── fish_regen_buoyantweight (1).csv
+│   ├── fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv
+│   ├── pam_healed.csv
+│   ├── pam_undisturbed_healed.csv
+│   ├── pam_undisturbed_healed_tissue_wound_no_wound.csv
+│   ├── skeletal.xlsx
+│   ├── wax_dip_calibrations.csv
+│   └── wax_dip_corals.csv
+├── analysis_visualization_code/
 │   ├── growth/
-│   │   ├── allometric_growth_analysis.Rmd  # Skeletal growth analysis
-│   │   └── SA_calibration_calculations_5_13.R  # Surface area calibration
-│   └── photo_eff/
-│       └── pam_analysis.Rmd                # PAM fluorometry analysis
-│
-├── figures/                           # Publication-quality figures
-│   ├── wound_closure/                 # Healing rate figures (PDF + PNG)
-│   ├── growth/                        # Growth rate figures (PDF + PNG)
-│   ├── pam/                           # Photosynthetic efficiency figures
-│   └── diagnostics/                   # Model diagnostic plots
-│
-├── images/                            # Repository images
-│   └── DAFL-photo.jpeg                # Damselfish image
-│
-├── damselfish_coral_healing_public.Rproj  # RStudio project file
-├── README.md                          # This file
-└── LICENSE                            # CC BY 4.0 license
-
+│   │   ├── allometric_growth_analysis.Rmd
+│   │   └── SA_calibration_calculations_5_13.R
+│   ├── photo_eff/
+│   │   └── pam_analysis.Rmd
+│   └── wound/
+│       └── wound_closure_analysis.Rmd
+├── figures/
+│   └── (output figures – e.g., initial_mass_by_treatment.png, scaled_growth_by_treatment.png)
+├── damselfish_coral_healing_public.Rproj
+├── README.md
+└── LICENSE
 ```
 
----
+### 2. Relationship between files
+- `data/` contains cleaned input datasets: buoyant weight, surface area, wound healing, and metadata.  
+- `analysis_visualization_code/` contains scripts and R Markdown for generating figures and analyses.  
+- `figures/` contains final high‑resolution graphics for publication.  
+- The R project file (`.Rproj`) encapsulates the analysis environment.
 
-## Installation & Requirements
-
-### Software Requirements
-
-- **R:** Version ≥ 4.5.0
-- **RStudio:** Recommended for running `.Rmd` files
-
-### R Package Dependencies
-
-```r
-# Data manipulation
-install.packages(c("tidyverse", "janitor", "here"))
-
-# Statistical modeling
-install.packages(c("lme4", "DHARMa", "MuMIn", "parameters", "broom.mixed"))
-
-# Visualization
-install.packages(c("ggplot2", "viridis", "ggeffects", "ggpubr", "gt"))
-
-# Additional
-install.packages(c("readxl", "effects", "sjlabelled"))
-```
-
-### Installation
-
-```bash
-# Clone repository
-git clone https://github.com/haydenvega/damselfish_coral_healing_public.git
-cd damselfish_coral_healing_public
-
-# Open RStudio project
-open damselfish_coral_healing_public.Rproj
-```
+### 3. Data versions
+This is the first publicly released version of the dataset (Version 1.0).
 
 ---
 
-## Quick Start
+## Methodological Information
 
-### Run Complete Analysis Pipeline
+### 1. Study goals
+The study aimed to evaluate how the presence of damselfish and the size of induced wounds influence tissue regeneration, volume/buoyant weight increase, and photosynthetic recovery in coral fragments of Pocillopora spp.
 
-1. **Open RStudio project:**
-   ```r
-   # Double-click damselfish_coral_healing_public.Rproj
-   ```
+### 2. Description of methods
 
-2. **Run analyses in order:**
+#### Study site and system
+August 2024, Richard B. Gump South Pacific Research Station, Mo’orea, French Polynesia (17°30′S, 149°50′W). Experiment tested effects of yellowtail damselfish (Dascyllus flavicaudus) on wound regeneration and photosynthetic recovery in Pocillopora spp. Summary statistics reported as mean ± SD.
 
-   ```r
-   # 1. Surface area calibration
-   source("analysis_visualization_code/growth/SA_calibration_calculations_5_13.R")
+#### Collection and experimental setup
+72 Pocillopora fragments (from mature colonies >20 cm) and 18 adult D. flavicaudus were collected from a northshore lagoon reef and transported to Gump Field Station. Fragments mounted on ceramic plugs and randomly distributed across six 95 L flow‑through tanks (12 fragments/tank; flow ≈ 6 L h−1). After 3 days acclimation, fragments were assigned to control (no wound), small wound (1.48 ± 0.40 cm2), or large wound (3.82 ± 1.08 cm2); 4 fragments per treatment per tank. Six fish (≈36 g total biomass) were added to half the tanks (n = 3); remaining tanks were fishless controls. All tanks fed 2 g TetraMarine flakes three times daily; uneaten food removed after 10 min.
 
-   # 2. Wound healing analysis
-   rmarkdown::render("analysis_visualization_code/wound/wound_closure_analysis.Rmd")
+#### Measurements and endpoints
+- Wound healing: photographs (Olympus TG‑6) immediately and on day 21; areas measured in ImageJ; wound scored healed/unhealed. Healing rate = (initial_area − final_area)/21 (cm2 day−1).  
+- Growth: buoyant weight measured day 1 and day 21 (Davies 1989); surface area via wax‑dip calibration; growth rate = (final_weight − initial_weight)/(surface_area × 21) (mg cm−2 day−1).  
+- Photosynthesis: dark‑adapted Fv/Fm measured day 21 with Diving‑PAM (Walz); measurement location: upper face for controls, adjacent to wound for wounded fragments. Algae near wounds removed in 8 fragments; effect of algae on Fv/Fm non‑significant (p = 0.106).
 
-   # 3. Allometric growth analysis
-   rmarkdown::render("analysis_visualization_code/growth/allometric_growth_analysis.Rmd")
+#### Data processing and analysis
+Data cleaned in R (janitor::clean_names()); derived variables computed (delta mass, growth rates, log transforms). Mixed‑effects models fitted with lme4::lmer() using tank as a random intercept; likelihood‑ratio tests used for model comparison. All raw data, cleaning scripts, cleaned outputs, and analysis Rmds are included in the repository.
 
-   # 4. PAM fluorometry analysis
-   rmarkdown::render("analysis_visualization_code/photo_eff/pam_analysis.Rmd")
-   ```
+#### Ethics and permits
+Field collection and experiments conducted under relevant permits and institutional approvals [insert permit numbers and issuing authorities].
 
-3. **View HTML reports:**
-   - `wound_closure_analysis.html`
-   - `allometric_growth_analysis.html`
-   - `pam_analysis.html`
 
-### Expected Runtime
+### 3. Description of quality‑assurance procedures performed on the data
+Raw data were double‑checked for entry errors. Missing or damaged fragments are coded as `NA`. The experimental design was verified for initial size equivalence across treatments.
 
-- Surface area calibration: ~30 seconds
-- Each analysis: ~2-5 minutes
-- Total pipeline: ~10-15 minutes
+## Variable Descriptions (Data Dictionary)
 
----
+### final_wound_size_dascyllus_project - Sheet1.csv
 
-## Data Documentation
-
-### Primary Datasets
-
-| File | Description | Observations | Used In |
-|------|-------------|--------------|---------|
-| `fish_regen_buoyantweight (1).csv` | Buoyant weight measurements (initial & final) | 144 | Growth analysis |
-| `final_wound_size_dascyllus_project - Sheet1.csv` | Wound healing measurements | 48 | Wound analysis |
-| `pam_undisturbed_healed_tissue_wound_no_wound.csv` | PAM fluorometry (Fv/Fm) | 72 | PAM analysis |
-| `fish_regen_mastersheet_..._sa - mastersheet.csv` | Treatment assignments + surface area | 72 | All analyses |
-
-### Metadata Files
-
-Each dataset has a corresponding `*_METADATA.txt` file containing:
-- Variable descriptions and units
-- Measurement protocols
-- Quality control procedures
-- Statistical analysis details
-- Usage guidelines
-
-**Primary metadata files:**
-- `DATA_METADATA.txt` - Comprehensive overview of all datasets
-- `fish_regen_buoyantweight_(1)_METADATA.txt` - Skeletal mass data
-- `final_wound_size_dascyllus_project_METADATA.txt` - Wound healing data
-- `pam_fluorometry_METADATA.txt` - PAM data (3 files)
-- `wax_dip_surface_area_METADATA.txt` - Surface area methods
-- `mastersheet_METADATA.txt` - Treatment assignments
-
-### Data Dictionary Quick Reference
-
-#### Treatment Coding
-
-```r
-# Fish presence
-0 = "No Fish"  (control tanks)
-1 = "Fish"     (6 damselfish per tank)
-
-# Wound size
-0 = "No Wound" (unwounded control)
-1 = "Small"    (~1.5 cm² wound)
-2 = "Large"    (~3.8 cm² wound)
-
-# Tank: 1-12 (used as random effect in all models)
-```
-
-#### Key Response Variables
-
-- **Healing rate:** (initial_wound_size - final_wound_size) / 21 days (cm²/day)
-- **Growth rate:** (final_mass - initial_mass) / (surface_area × 21) (mg/cm²/day)
-- **Allometric growth:** log(final_mass / initial_mass^b) where b = scaling coefficient
-- **Fv/Fm:** (Fm - F0) / Fm, photosystem II quantum efficiency (0-1 scale)
+| Variable | Description |
+|---|---|
+| `coral_id` | Unique identifier for each coral fragment |
+| `date_collected` | Date the coral fragment was collected |
+| `date_fragment` | Date the coral was fragmented |
+| `fish` | Presence of fish (`1` = fish present, `0` = no fish) |
+| `wound` | Wound treatment group (`1` = small wound, `2` = large wound) |
+| `tank` | Tank number where the coral was housed |
+| `wound_size_final` | Final wound size in centimeters |
+| `percent healed` | Percentage of wound healed over the experiment duration |
+| `initial_wound_size_cm` | Initial wound size in centimeters |
+| `healing_rate` | Rate of healing per day (cm/day) |
+| `time_healing_days` | Duration of healing period in days |
 
 ---
 
-## Analysis Workflow
+### fish_regen_buoyantweight (1).csv
 
-### 1. Surface Area Calibration
-
-**Script:** `SA_calibration_calculations_5_13.R`
-
-**Purpose:** Generate calibration curve to convert wax coating mass to coral surface area
-
-**Inputs:**
-- `wax_dip_calibrations.csv` (geometric standards)
-- `wax_dip_corals.csv` (coral measurements)
-
-**Outputs:**
-- `coral_sa.csv` (calibrated surface areas)
-- Calibration curve diagnostics
-
-**Method:** Linear regression of wax mass vs. known surface area
-
----
-
-### 2. Wound Healing Analysis
-
-**Script:** `wound_closure_analysis.Rmd`
-
-**Key Analyses:**
-- Daily healing rates by fish and wound size
-- Proportion healed (beta regression)
-- Mixed-effects models with tank as random effect
-- DHARMa diagnostics
-
-**Statistical Models:**
-```r
-# Primary model
-healing_rate ~ fish * wound + (1 | tank)
-
-# Beta regression for proportions
-prop_healed ~ fish * wound + (1 | tank), family = beta()
-```
-
-**Figures Generated:**
-- Mean healing rates with error bars (PDF + PNG)
-- DHARMa diagnostic plots
-- Residual diagnostics
+| Variable | Description |
+|---|---|
+| `date` | Measurement time point (`initial` or `final`) |
+| `coral_id` | Unique identifier for each coral fragment |
+| `bouyantweight_g` | Coral buoyant weight in grams |
+| `air_temp_c` | Air temperature during weighing (°C) |
+| `air_weight_g` | Coral weight in air (grams) |
+| `fresh_temp_c` | Temperature of fresh water during weighing (°C) |
+| `fresh_weight_g` | Coral weight in fresh water (grams) |
+| `salt_temp_c` | Temperature of salt water during weighing (°C) |
+| `salt_weight_g` | Coral weight in salt water (grams) |
+| `density_aragonite` | Density of aragonite used for buoyant weight calculations (g/cm³) |
+| `wound` | Wound treatment group (`Small`, `Large`, or `No Wound`) |
+| `fish` | Fish treatment group (`Fish` or `No Fish`) |
 
 ---
 
-### 3. Allometric Growth Analysis
+### pam_healed.csv
 
-**Script:** `allometric_growth_analysis.Rmd`
-
-**Key Analyses:**
-- Allometric scaling coefficient estimation
-- Size-corrected growth rates
-- Surface area-normalized growth
-- Mixed-effects models
-
-**Statistical Models:**
-```r
-# Allometric scaling
-log(final_mass) ~ log(initial_mass) + wound
-
-# Size-corrected growth
-allometric_growth ~ fish * wound + (1 | tank)
-
-# Growth rate per unit area
-growth_rate_per_cm2 ~ fish * wound + (1 | tank)
-```
-
-**Figures Generated:**
-- Allometric scaling relationship
-- Mean growth rates by treatment (PDF + PNG)
-- Model diagnostics
+| Variable | Description |
+|---|---|
+| `coral_id` | Unique identifier for each coral fragment |
+| `f0` | Initial fluorescence reading (Fo) |
+| `fm` | Maximum fluorescence reading (Fm) |
+| `fv_fm` | Photosynthetic efficiency (Fv/Fm ratio) |
+| `wound` | Wound treatment group (`Small` or `Large`) |
+| `fish` | Fish treatment group (`Fish` or `No Fish`) |
+| `tank` | Tank number where the coral was housed |
+| `initial_wound_size` | Initial wound size in centimeters |
+| `algae` | Presence of algae (`yes` or `no`) |
 
 ---
 
-### 4. PAM Fluorometry Analysis
-
-**Script:** `pam_analysis.Rmd`
-
-**Key Analyses:**
-- Photosynthetic efficiency (Fv/Fm) by treatment
-- Effects of fish and wound on photosynthetic health
-- Algae colonization effects (tested, non-significant)
-- Mixed-effects models
-
-**Statistical Models:**
-```r
-# Primary model
-fv_fm ~ fish * wound + (1 | tank)
-
-# Algae effect (subset analysis)
-fv_fm ~ fish * wound + algae + (1 | tank)
-```
-
-**Figures Generated:**
-- Mean Fv/Fm by treatment with error bars (PDF + PNG)
-- Model diagnostics
-
----
-
-### Statistical Approach (All Analyses)
-
-**Model Structure:**
-- Linear mixed-effects models (`lme4::lmer`)
-- Fixed effects: Fish (2 levels) × Wound (2-3 levels)
-- Random effect: Tank (12 tanks) as random intercept
-- Hypothesis testing: Likelihood ratio tests (LRT)
-- Diagnostics: DHARMa simulated residuals (n=1000)
-
-**Factor Level Ordering:**
-- Fish: "No Fish" → "Fish"
-- Wound: "No Wound" → "Small" → "Large"
-
-**Model Validation:**
-- QQ plots for normality
-- Residual vs. fitted for homoscedasticity
-- DHARMa tests for dispersion and outliers
-- Predicted vs. observed plots
-
----
-
-## Key Findings
-
-### 1. Wound Healing
-
-- **Fish presence significantly accelerates wound healing**
-- Small wounds heal faster than large wounds
-- Many small wounds achieved 100% closure by Day 21
-- Fish effect stronger for large wounds (interaction trend)
-
-### 2. Skeletal Growth
-
-- **Wound size reduces growth rates** (more severe for large wounds)
-- Fish presence shows positive growth effects
-- Allometric scaling coefficient (b) ≈ 0.7-0.9 for *Pocillopora*
-- Growth rates: ~X mg/cm²/day [values from analysis]
-
-### 3. Photosynthetic Efficiency
-
-- **Fish presence enhances photosynthetic efficiency (Fv/Fm)**
-- Wound size shows measurable stress effects
-- Fish appears to buffer wound stress
-- No significant fish × wound interaction
-- Algal colonization not a significant confound (p = 0.106)
-
-### Ecological Implications
-
-Coral-associated damselfish provide multiple benefits to host corals:
-1. Enhanced tissue regeneration
-2. Maintained photosynthetic function under stress
-3. Potential mechanisms: nutrient provisioning (ammonium), protection from competitors
-
----
-
-## Citation
-
-### Dataset Citation
-
-```
-Vega, H. & Stier, A. (2025). Damselfish-Coral Healing Experimental Dataset.
-Repository: https://github.com/haydenvega/damselfish_coral_healing_public
-DOI: [pending]
-```
-
-### Publication Citation
-
-```
-Vega, H. & Stier, A. (2025). Coral-Associated Fishes Accelerate Coral Wound
-Healing and Photosynthetic Recovery. [Journal reference pending].
-```
-
-### BibTeX
-
-```bibtex
-@misc{vega2025damselfish_data,
-  author = {Vega, Hayden and Stier, Adrian},
-  title = {Damselfish-Coral Healing Experimental Dataset},
-  year = {2025},
-  publisher = {GitHub},
-  url = {https://github.com/haydenvega/damselfish_coral_healing_public},
-  doi = {pending}
-}
-
-@article{vega2025damselfish,
-  author = {Vega, Hayden and Stier, Adrian},
-  title = {Coral-Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery},
-  journal = {[Journal pending]},
-  year = {2025},
-  doi = {pending}
-}
-```
-
----
-
-## Funding & Acknowledgments
-
-### Funding Sources
-
-- **W.M. Keck Foundation**
-- **National Science Foundation:**
-  - OCE-1851510
-  - OCE-1851032
-  - OCE-1637396 (Moorea Coral Reef LTER)
-- **UCSB Worster Fellowship** (student funding)
-
-### Acknowledgments
-
-This work was facilitated by the NSF-funded Moorea Coral Reef Long-Term Ecological Research (MCR-LTER) program. We thank the staff at Richard B. Gump South Pacific Research Station for logistical support and the UC Natural Reserve System for access to research facilities.
-
-### Field Permits
-
-Field collection and experiments conducted under permits issued by the French Polynesian government [permit numbers pending].
-
----
-
-## License
-
-This dataset is licensed under the **Creative Commons Attribution 4.0 International (CC BY 4.0)** license.
-
-**You are free to:**
-- Share — copy and redistribute the material
-- Adapt — remix, transform, and build upon the material
-
-**Under the following terms:**
-- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made
-
-Full license: https://creativecommons.org/licenses/by/4.0/
-
----
-
-## Contact
-
-### Authors
-
-**Hayden Vega**
-PhD Student, Department of Ecology, Evolution, and Marine Biology
-University of California Santa Barbara
-Email: haydenvega@ucsb.edu
-
-**Adrian Stier**
-Associate Professor, Department of Ecology, Evolution, and Marine Biology
-University of California Santa Barbara
-Email: astier@ucsb.edu
-Lab Website: [Stier Lab](https://www.thestierlab.com/)
-
-### Issues & Questions
-
-- **Data questions:** Contact Hayden Vega (haydenvega@ucsb.edu)
-- **Code issues:** Open an issue on GitHub
-- **Collaboration inquiries:** Contact Adrian Stier (astier@ucsb.edu)
-
----
-
-## Additional Resources
-
-### Related Publications
-
-[To be added upon publication]
-
-### Data Repositories
-
-- **GitHub:** https://github.com/haydenvega/damselfish_coral_healing_public
-- **Zenodo:** [DOI pending]
-- **MCR-LTER Data:** [link pending]
-
-### Methods References
-
-- **Buoyant weighing:** Davies, P.S. (1989). Short-term growth measurements of corals using an accurate buoyant weighing technique. *Marine Biology* 101:389-395.
-- **PAM fluorometry:** Maxwell, K. & Johnson, G.N. (2000). Chlorophyll fluorescence—a practical guide. *Journal of Experimental Botany* 51:659-668.
-- **Surface area:** Veal, C.J. et al. (2010). Coral surface area quantification. *Coral Reefs* 29:93-97.
-
----
-
-**Last Updated:** October 28, 2024
-**Repository Version:** 1.0
-**Status:** Publication pending
-
----
-
-<div align="center">
-
-**If you use this dataset, please cite both the data repository and the associated publication.**
-
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?logo=github)](https://github.com/haydenvega/damselfish_coral_healing_public)
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-
-</div>
+## Citations
+Vega, H. & Stier, A. (2025). *Coral‑Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Journal reference pending].

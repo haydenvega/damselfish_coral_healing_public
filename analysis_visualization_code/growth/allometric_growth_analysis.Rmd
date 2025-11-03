@@ -1,133 +1,40 @@
 ---
-title: "Coral Skeletal Growth Analysis: Allometric Scaling and Fish Effects"
-author: "Hayden Vega & Adrian Stier"
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    toc: true
-    toc_float: true
-    toc_depth: 3
-    code_folding: hide
-    theme: flatly
-    highlight: tango
+title: "allometric_growth_analysis"
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = TRUE,
-  warning = FALSE,
-  message = FALSE,
-  fig.width = 10,
-  fig.height = 7,
-  dpi = 300
-)
-```
+#Descripton
+This script performs an allometric analysis of coral growth using buoyant weight measurements. It filters and reshapes initial and final weights, merges in tank metadata, tests for initial mass differences across treatments, fits an allometric mixed-effects model(log-log), and evaluates treatment effects (fish and wound) on allometrically scaled growth using likelihood ratio tests.
 
-# Overview {.tabset}
+# Setup
+```{r}
+# ===============================
+# 1. Load Required Libraries
+# ===============================
+library(tidyverse)
+library(janitor)
+library(here)
+library(gt)
+library(broom.mixed)
+library(ggpubr)
+library(lme4)
 
-## Study Design
+#...........................aesthetics...........................
+wound_palette <- c("Large" = "#FF8B00", 
+                   "Small" = "#be8333", 
+                   "No Wound" = "#485900")
 
-**Research Question**: Do damselfish (*Dascyllus flavicaudus*) enhance coral skeletal growth rates in *Pocillopora* spp., and does this effect vary with wound size?
-
-**Experimental Design**:
-
-- **Factors**: Fish presence (Present/Absent) × Wound size (None/Small/Large)
-- **Sample size**: 72 coral fragments
-- **Duration**: 21 days
-- **Location**: Mo'orea, French Polynesia
-- **Response variables**:
-  - Buoyant weight (skeletal mass)
-  - Allometrically-scaled growth
-  - Growth rate per surface area per day
-
-## Analysis Overview
-
-This document contains:
-
-1. **Data Import & Preparation**
-2. **Allometric Scaling Analysis** (size-corrected growth)
-3. **Surface Area Calibration**
-4. **Growth Rate Models** (mixed-effects)
-5. **Publication Figures**
-6. **Comprehensive Diagnostics**
-
-**Key Methodology**: We use **allometric scaling** to correct for initial coral size differences, allowing fair comparison of growth rates across all fragments.
-
----
-
-# 1. Setup & Data Import
-
-## Load Required Packages
-
-```{r load-packages}
-# ==================== Core Packages ====================
-library(tidyverse)      # Data wrangling and visualization
-library(here)           # Relative file paths
-library(janitor)        # Data cleaning
-
-# ==================== Statistical Modeling ====================
-library(lme4)           # Linear mixed-effects models
-library(DHARMa)         # Residual diagnostics
-library(broom.mixed)    # Tidy model outputs
-
-# ==================== Visualization ====================
-library(ggpubr)         # Publication-ready plots
-library(gt)             # Publication-quality tables
-
-cat("✓ Packages loaded successfully\n")
-```
-
-## Define Aesthetics
-
-```{r define-aesthetics}
-# Consistent color schemes for all figures
-wound_palette <- c(
-  "Large" = "#FF8B00",     # Orange
-  "Small" = "#be8333",     # Tan  
-  "No Wound" = "#485900"   # Olive green
-)
-
-fish_palette <- c(
-  "Fish" = "#2b4b52",      # Teal
-  "No Fish" = "#ad301a"    # Burnt red
-)
-```
-
-## Import Data
-
-```{r import-data}
-# Import buoyant weight data (skeletal mass measurements)
+fish_palette <- c("Fish" = "#2b4b52", 
+                  "No Fish" = "#ad301a")
+# ===============================
+# 2. Load Buoyant Weight Data
+# ===============================
 bw_raw <- read_csv(here("data", "fish_regen_buoyantweight (1).csv")) %>%
   clean_names() %>%
-  # Remove outliers identified in QC
-  filter(coral_id != 45) %>%
+  filter(coral_id != 45)%>%
   filter(coral_id != 91)
 
-# Import surface area data
-sa <- read_csv(here("data", "fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv")) %>%
-  clean_names() %>%
-  mutate(coral_id = as.character(coral_id))
-
-# Import tank metadata
-tank_df <- read_csv(here("data", "Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv")) %>%
-  clean_names() %>%
-  select(coral_id, tank) %>%
-  mutate(coral_id = as.character(coral_id))
-
-cat("✓ Data imported successfully\n")
-cat("  - Buoyant weight data:", nrow(bw_raw), "observations\n")
-cat("  - Surface area data:", nrow(sa), "corals\n")
-cat("  - Tank assignments:", nrow(tank_df), "corals\n")
-```
-
----
-
-# 2. Data Preparation
-
-## Reshape Buoyant Weight Data
-
-```{r reshape-weight-data}
-# Split data into initial and final measurements
+# Split initial and final weights
 bw_initial <- bw_raw %>%
   filter(date == "initial") %>%
   select(coral_id, wound, fish, initial_weight = bouyantweight_g)
@@ -136,76 +43,54 @@ bw_final <- bw_raw %>%
   filter(date == "final") %>%
   select(coral_id, final_weight = bouyantweight_g)
 
-# Join into wide format (one row per coral)
+# Join initial and final to get one row per coral
 bw_wide <- left_join(bw_initial, bw_final, by = "coral_id") %>%
   mutate(
     delta_mass = final_weight - initial_weight,
     coral_id = as.character(coral_id)
-  )
+  ) 
 
-cat("✓ Data reshaped to wide format\n")
-cat("  - Initial weights:", sum(!is.na(bw_wide$initial_weight)), "corals\n")
-cat("  - Final weights:", sum(!is.na(bw_wide$final_weight)), "corals\n")
-```
 
-## Merge with Surface Area Data
 
-```{r merge-surface-area}
-# Adjust surface area to account for wound area removed
-sa_adjusted <- sa %>%
-  select(-fish, -date_collected, -date_fragment) %>%
-  mutate(
-    # Subtract wound area: 3 cm² for large wounds, 1 cm² for small
-    sa_col = ifelse(wound == "Large", sa_cal - 3, 
-                    ifelse(wound == "Small", sa_cal - 1, sa_cal))
-  ) %>%
-  select(-wound)  # Remove to avoid duplication in join
+  #.....................Load Surface Area Data.....................
+sa <- read_csv(here("data", "fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv")) %>% 
+  clean_names() %>% 
+  mutate(coral_id = as.character(coral_id)) %>% 
+  select(-fish, -date_collected, -date_fragment) %>% 
+  mutate(sa_col=ifelse(wound == "Large", sa_cal - 3, #removing 3 cm^2 from large wounds and 1 from small
+                       ifelse(wound == "Small", sa_cal - 1, sa_cal))) %>% 
+  select(-wound) #removing the column so it doesn't duplicate when we join with bw_wide
 
-# Merge buoyant weight with adjusted surface area
-bw_sa_wide <- left_join(bw_wide, sa_adjusted, by = "coral_id") %>%
+bw_sa_wide <- left_join(bw_wide, sa, by = "coral_id") %>% 
   mutate(
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
     tank = as.factor(tank)
-  ) %>%
+  ) %>% 
   mutate(tank = factor(tank, levels = sort(unique(as.numeric(as.character(tank))))))
+  
+# ===============================
+# 3. Load Tank Metadata
+# ===============================
+tank_df <- read_csv(here("data", "Copy of fish_regen_mastersheet_wound closure_necrosis - mastersheet.csv")) %>%
+  clean_names() %>%
+  select(coral_id, tank) %>%
+  mutate(coral_id = as.character(coral_id))
 
-cat("✓ Surface area data merged\n")
-cat("  - Mean initial SA:", round(mean(bw_sa_wide$sa_cal, na.rm = TRUE), 2), "cm²\n")
-```
-
-## Merge with Tank Metadata
-
-```{r merge-tank-data}
+# ===============================
+# 4. Merge Tank Info into Wide Format
+# ===============================
 bw_merged <- left_join(bw_wide, tank_df, by = "coral_id") %>%
   mutate(
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
     tank = as.factor(tank)
   )
 
-cat("✓ Tank metadata merged\n")
-cat("  - Number of tanks:", nlevels(bw_merged$tank), "\n")
 ```
 
----
-
-# 3. Allometric Scaling Analysis
-
-## Theory: Why Allometric Scaling?
-
-**Problem**: Larger corals grow faster simply because they're bigger, not necessarily because they're healthier.
-
-**Solution**: Allometric scaling adjusts growth for initial size using the relationship:
-
-$$\log(\text{Final Mass}) = \alpha + b \times \log(\text{Initial Mass})$$
-
-Where $b$ is the **allometric coefficient**. We then calculate **size-corrected growth** as:
-
-$$\text{Scaled Growth} = \log\left(\frac{\text{Final Mass}}{\text{Initial Mass}^b}\right)$$
-
-## Prepare Data for Allometric Model
-
-```{r prep-allometric-data}
-# Create dataset with log-transformed weights
+#Transform Data for Allometric Modeling
+```{r}
+# Create a dataset with log-transformed weights and growth ratio
+# Drop NAs to ensure valid model fitting
 log_df <- bw_merged %>%
   mutate(
     log_i_weight = log(initial_weight),
@@ -214,75 +99,49 @@ log_df <- bw_merged %>%
   ) %>%
   drop_na(log_i_weight, log_f_weight, tank)
 
-cat("✓ Allometric dataset prepared\n")
-cat("  - Valid observations:", nrow(log_df), "corals\n")
-```
+# ===============================
+# 4. Fixed-Effects Allometric Model
+# ===============================
+# Fit a linear mixed-effects model:
+# Predict final log-weight from initial log-weight
+# Include tank as a random intercept to account for tank-level variation
 
-## Fit Allometric Model
-
-```{r fit-allometric-model}
-# Linear mixed-effects model: final ~ initial + random(tank)
 model_lmer <- lmer(log_f_weight ~ log_i_weight + (1 | tank), data = log_df)
 
-cat("=== Allometric Model Summary ===\n")
+# Summary with fixed effect (slope), intercept, and random effects
 summary(model_lmer)
 
-# Extract allometric coefficient (b-value) with 95% CI
+# Extract allometric slope (b-value) with 95% confidence interval
 b_value <- tidy(model_lmer, effects = "fixed", conf.int = TRUE) %>%
   filter(term == "log_i_weight")
-
-cat("\n=== Allometric Coefficient (b-value) ===\n")
 print(b_value)
-```
 
-## Visualize Allometric Relationship
 
-```{r plot-allometric, fig.width=8, fig.height=6}
-# Generate predicted values
+# Generate predicted log final weights across observed range of initial weights
 fit_df <- log_df %>%
   select(log_i_weight) %>%
   distinct() %>%
   arrange(log_i_weight) %>%
   mutate(predicted = predict(model_lmer, newdata = ., re.form = NA))
 
-# Create allometric scaling plot
-allometric_plot <- ggplot(log_df, aes(x = log_i_weight, y = log_f_weight)) +
-  geom_point(size = 2.2, shape = 21, fill = "steelblue", color = "black", 
-             alpha = 0.8, stroke = 0.3) +
-  geom_line(data = fit_df, aes(x = log_i_weight, y = predicted), 
-            color = "darkred", linewidth = 1.2) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", 
-              color = "gray60", linewidth = 0.8) +
+
+#  Plot Allometric Fit and Observed Data
+ggplot(log_df, aes(x = log_i_weight, y = log_f_weight)) +
+  geom_point(size = 2.2, shape = 21, fill = "steelblue", color = "black", alpha = 0.8, stroke = 0.3) +
+  geom_line(data = fit_df, aes(x = log_i_weight, y = predicted), color = "darkred", linewidth = 1.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray60", linewidth = 0.8) +
   labs(
     title = "Allometric Scaling of Coral Buoyant Weight",
-    subtitle = "Mixed-effects model with tank as random intercept",
+    subtitle = "Mixed-effects model with tank as a random intercept",
     x = "Log Initial Weight (g)",
     y = "Log Final Weight (g)"
   ) +
   theme_pubr(base_size = 14)
 
-print(allometric_plot)
 
-# Save figure
-ggsave(
-  filename = here("figures", "growth", "allometric_scaling_plot.pdf"),
-  plot = allometric_plot,
-  width = 8, height = 6, dpi = 600, device = cairo_pdf
-)
+library(gt)
 
-ggsave(
-  filename = here("figures", "growth", "allometric_scaling_plot.png"),
-  plot = allometric_plot,
-  width = 10, height = 7.5, dpi = 300, bg = "white"
-)
-
-cat("✓ Allometric plot saved\n")
-```
-
-## Display b-value Table
-
-```{r b-value-table}
-# Create formatted table of allometric coefficient
+# Extract and prepare the b-value data
 b_value_gt <- tidy(model_lmer, effects = "fixed", conf.int = TRUE) %>%
   filter(term == "log_i_weight") %>%
   transmute(
@@ -291,11 +150,12 @@ b_value_gt <- tidy(model_lmer, effects = "fixed", conf.int = TRUE) %>%
     `95% CI` = paste0("[", round(conf.low, 3), ", ", round(conf.high, 3), "]")
   )
 
+# Create and format the gt table for the b value 
 b_value_gt %>%
   gt() %>%
   tab_header(
     title = "Estimated Allometric Slope",
-    subtitle = "Mixed-effects model with tank as random intercept"
+    subtitle = "Mixed-effects model with tank as a random intercept"
   ) %>%
   cols_label(
     Term = "",
@@ -307,23 +167,7 @@ b_value_gt %>%
     heading.title.font.size = 16,
     heading.subtitle.font.size = 13
   )
-```
-
----
-
-# 4. Surface Area Growth Analysis
-
-## Prepare SA-Adjusted Dataset
-
-```{r prep-sa-data}
-# Create dataset with surface area and time adjustments
-bw_sa_df <- bw_sa_wide %>%
-  drop_na(initial_weight, final_weight, wound) %>%
-  filter(coral_id != 103) %>%  # Remove outlier
-  mutate(
-    delta_mass = final_weight - initial_weight,
-    wound = factor(wound, levels = c("No Wound", "Small", "Large"))
-  )
+#..........Statistical Analysis of Growth/SA/Time Metric.........
 
 bw_sa_stats <- bw_sa_df %>%
   drop_na(initial_weight, final_weight, fish, wound, tank) %>%
@@ -331,19 +175,14 @@ bw_sa_stats <- bw_sa_df %>%
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
     fish = factor(fish),
     tank = factor(tank),
-    # Growth rate: mass change per surface area per day
-    bw_sa_time = (final_weight - initial_weight) / (sa_cal * 21)
+    bw_sa_time = (final_weight - initial_weight) / (sa_cal * 21) 
   )
 
-cat("✓ SA-adjusted growth data prepared\n")
-cat("  - Valid observations:", nrow(bw_sa_stats), "corals\n")
-cat("  - Mean growth rate:", round(mean(bw_sa_stats$bw_sa_time, na.rm = TRUE), 5), "g/cm²/day\n")
-```
 
-## Visualize SA-Growth Relationship
+#visualize the relationship between delta mass and surface area, not a super strong relationsip
+#i like final/initial or log(final/initial^b)
 
-```{r plot-sa-growth, fig.width=8, fig.height=6}
-sa_growth_plot <- ggplot(bw_sa_stats, aes(x = sa_cal, y = delta_mass, color = wound)) +
+ggplot(bw_sa_stats, aes(x = sa_cal, y = delta_mass, color = wound)) +
   geom_point(size = 2.2, alpha = 0.7) +
   geom_smooth(method = "lm", se = FALSE, linewidth = 1.1) +
   scale_color_brewer(palette = "Dark2") +
@@ -351,62 +190,35 @@ sa_growth_plot <- ggplot(bw_sa_stats, aes(x = sa_cal, y = delta_mass, color = wo
     title = "Coral Growth as a Function of Surface Area",
     subtitle = "Colored by Wound Treatment",
     x = "Surface Area (cm²)",
-    y = "Mass Change (g)",
+    y = expression((Final - Initial) / (Surface_Area * Time)),
     color = "Wound Treatment"
   ) +
   theme_pubr(base_size = 14)
 
-print(sa_growth_plot)
-
-# Save figure
-ggsave(
-  filename = here("figures", "growth", "sa_growth_relationship.pdf"),
-  plot = sa_growth_plot,
-  width = 8, height = 6, dpi = 600, device = cairo_pdf
-)
-
-ggsave(
-  filename = here("figures", "growth", "sa_growth_relationship.png"),
-  plot = sa_growth_plot,
-  width = 10, height = 7.5, dpi = 300, bg = "white"
-)
-
-cat("✓ SA-growth plot saved\n")
 ```
 
----
+#Statistical Analysis of Allometrically Scaled Growth
+```{r}
 
-# 5. Statistical Models: Allometrically-Scaled Growth
 
-## Prepare Scaled Growth Variable
+# --- Step 1: Prepare Data with Allometric Scaling ---
+b_est <- b_value$estimate[1]  # b-value from previous section
 
-```{r prep-scaled-growth}
-# Extract b-value from allometric model
-b_est <- b_value$estimate[1]
-
-# Calculate allometrically-scaled growth
 growth_stats <- bw_merged %>%
   drop_na(initial_weight, final_weight, fish, wound, tank) %>%
   mutate(
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
     fish = factor(fish),
     tank = factor(tank),
-    # Size-corrected growth using estimated b-value
-    growth_scaled = log(final_weight / initial_weight^b_est)
+    growth_scaled = log(final_weight/initial_weight ^ b_est) 
   )
 
-cat("✓ Scaled growth variable calculated\n")
-cat("  - Using b-value:", round(b_est, 3), "\n")
-cat("  - Mean scaled growth:", round(mean(growth_stats$growth_scaled, na.rm = TRUE), 4), "\n")
-```
+# --- Step 2: Fit Mixed-Effects Models ---
 
-## Fit Candidate Models
-
-```{r fit-scaled-models}
 # Full model with interaction
 mod_int <- lmer(growth_scaled ~ fish * wound + (1 | tank), data = growth_stats)
 
-# Additive model (no interaction)
+# Additive model without interaction
 mod_add <- lmer(growth_scaled ~ fish + wound + (1 | tank), data = growth_stats)
 
 # Fish-only model
@@ -415,127 +227,176 @@ mod_fish <- lmer(growth_scaled ~ fish + (1 | tank), data = growth_stats)
 # Wound-only model
 mod_wound <- lmer(growth_scaled ~ wound + (1 | tank), data = growth_stats)
 
-# Null model
+# Null model (intercept + tank)
 mod_null <- lmer(growth_scaled ~ 1 + (1 | tank), data = growth_stats)
 
-cat("✓ All models fitted successfully\n")
-```
-
-## Likelihood Ratio Tests
-
-```{r lrt-scaled-growth}
-# Test for interaction
+# --- Step 3: Likelihood Ratio Tests ---
 lrt_interaction <- anova(mod_add, mod_int, test = "Chisq")
-
-# Test for fish effect
 lrt_fish <- anova(mod_wound, mod_add, test = "Chisq")
-
-# Test for wound effect
 lrt_wound <- anova(mod_fish, mod_add, test = "Chisq")
 
-# Compile results
+# --- Step 4: Summarize Results in a Table ---
+
+
 lrt_table <- tibble(
   Test = c("Interaction (Fish × Wound)", "Fish Effect", "Wound Effect"),
-  ChiSq = c(lrt_interaction$Chisq[2], lrt_fish$Chisq[2], lrt_wound$Chisq[2]),
-  Df = c(lrt_interaction$Df[2], lrt_fish$Df[2], lrt_wound$Df[2]),
-  p_value = c(lrt_interaction$`Pr(>Chisq)`[2], lrt_fish$`Pr(>Chisq)`[2], lrt_wound$`Pr(>Chisq)`[2])
+  ChiSq = c(
+    lrt_interaction$Chisq[2],
+    lrt_fish$Chisq[2],
+    lrt_wound$Chisq[2]
+  ),
+  Df = c(
+    lrt_interaction$Df[2],
+    lrt_fish$Df[2],
+    lrt_wound$Df[2]
+  ),
+  p_value = c(
+    lrt_interaction$`Pr(>Chisq)`[2],
+    lrt_fish$`Pr(>Chisq)`[2],
+    lrt_wound$`Pr(>Chisq)`[2]
+  )
 ) %>%
   mutate(across(where(is.numeric), round, 3))
 
-# Format table
+# Format with gt
 lrt_table %>%
   gt() %>%
   tab_header(
-    title = "Likelihood Ratio Tests: Allometrically-Scaled Growth"
+    title = "Table 2. Likelihood Ratio Tests for Effects on Coral Growth",
+    subtitle = paste("Scaled growth:", expression((final - initial)/initial^b))
   ) %>%
   cols_label(
     Test = "Model Comparison",
-    ChiSq = "χ²",
-    Df = "df",
+    ChiSq = "Chi-squared",
+    Df = "Degrees of Freedom",
     p_value = "P-value"
   ) %>%
-  fmt_number(columns = c(ChiSq, p_value), decimals = 3) %>%
+  fmt_number(columns = vars(ChiSq, p_value), decimals = 3) %>%
   tab_options(
     table.font.size = 14,
-    heading.title.font.size = 16
+    heading.title.font.size = 16,
+    heading.subtitle.font.size = 13
   )
-```
 
----
+#..........Statistical Analysis of Growth/SA/Time Metric.........
 
-# 6. Growth Rate Analysis (Mass/SA/Time)
+# Prep data: drop NAs, ensure proper factor levels
 
-## Fit Growth Rate Models
+bw_sa_df <- bw_sa_wide %>%
 
-```{r fit-growth-rate-models}
+  drop_na(initial_weight, final_weight, wound) %>%
+
+  filter(coral_id != 103) %>% 
+
+  mutate(
+
+    delta_mass = final_weight - initial_weight,
+
+    wound = factor(wound, levels = c("No Wound", "Small", "Large"))
+
+  )
+
+bw_sa_stats <- bw_sa_df %>%
+  drop_na(initial_weight, final_weight, fish, wound, tank) %>%
+  mutate(
+    wound = factor(wound, levels = c("No Wound", "Small", "Large")),
+    fish = factor(fish),
+    tank = factor(tank),
+    bw_sa_time = (final_weight - initial_weight) / (sa_cal * 21) 
+  )
+
+
+#Visualize the relationship
+ggplot(bw_sa_stats, aes(x = sa_cal, y = delta_mass, color = wound)) +
+  geom_point(size = 2.2, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.1) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(
+    title = "Coral Growth as a Function of Surface Area",
+    subtitle = "Colored by Wound Treatment",
+    x = "Surface Area (cm²)",
+    y = expression((Final - Initial) / (Surface_Area * Time)),
+    color = "Wound Treatment"
+  ) +
+  theme_pubr(base_size = 14)
+
+# --- Step 2: Fit Mixed-Effects Models ---
+
 # Full model with interaction
 mod_int_sa <- lmer(bw_sa_time ~ fish * wound + (1 | tank), data = bw_sa_stats)
 
-# Additive model
+# Additive model without interaction
 mod_add_sa <- lmer(bw_sa_time ~ fish + wound + (1 | tank), data = bw_sa_stats)
 
-# Fish-only
+# Fish-only model
 mod_fish_sa <- lmer(bw_sa_time ~ fish + (1 | tank), data = bw_sa_stats)
 
-# Wound-only
+# Wound-only model
 mod_wound_sa <- lmer(bw_sa_time ~ wound + (1 | tank), data = bw_sa_stats)
 
-# Null
+# Null model (intercept + tank)
 mod_null_sa <- lmer(bw_sa_time ~ 1 + (1 | tank), data = bw_sa_stats)
 
-cat("✓ Growth rate models fitted\n")
-```
-
-## Growth Rate Model Comparison
-
-```{r lrt-growth-rate}
-# Likelihood ratio tests
+# --- Step 3: Likelihood Ratio Tests ---
 lrt_interaction_sa <- anova(mod_add_sa, mod_int_sa, test = "Chisq")
 lrt_fish_sa <- anova(mod_wound_sa, mod_add_sa, test = "Chisq")
 lrt_wound_sa <- anova(mod_fish_sa, mod_add_sa, test = "Chisq")
 
-# Compile results
-lrt_table_sa <- tibble(
+# --- Step 4: Summarize Results in a Table ---
+
+
+lrt_table <- tibble(
   Test = c("Interaction (Fish × Wound)", "Fish Effect", "Wound Effect"),
-  ChiSq = c(lrt_interaction_sa$Chisq[2], lrt_fish_sa$Chisq[2], lrt_wound_sa$Chisq[2]),
-  Df = c(lrt_interaction_sa$Df[2], lrt_fish_sa$Df[2], lrt_wound_sa$Df[2]),
-  p_value = c(lrt_interaction_sa$`Pr(>Chisq)`[2], lrt_fish_sa$`Pr(>Chisq)`[2], lrt_wound_sa$`Pr(>Chisq)`[2])
+  ChiSq = c(
+    lrt_interaction_sa$Chisq[2],
+    lrt_fish_sa$Chisq[2],
+    lrt_wound_sa$Chisq[2]
+  ),
+  Df = c(
+    lrt_interaction_sa$Df[2],
+    lrt_fish_sa$Df[2],
+    lrt_wound_sa$Df[2]
+  ),
+  p_value = c(
+    lrt_interaction_sa$`Pr(>Chisq)`[2],
+    lrt_fish_sa$`Pr(>Chisq)`[2],
+    lrt_wound_sa$`Pr(>Chisq)`[2]
+  )
 ) %>%
   mutate(across(where(is.numeric), round, 3))
 
-# Format table
-lrt_table_sa %>%
+# Format with gt
+lrt_table %>%
   gt() %>%
   tab_header(
-    title = "Likelihood Ratio Tests: Growth Rate (g/cm²/day)"
+    title = "Table 2. Likelihood Ratio Tests for Effects on Coral Growth as a function of Surface Area and Time",
+    subtitle = paste("Scaled growth:", expression((final - initial)/(surface_area * 21)))
   ) %>%
   cols_label(
     Test = "Model Comparison",
-    ChiSq = "χ²",
-    Df = "df",
+    ChiSq = "Chi-squared",
+    Df = "Degrees of Freedom",
     p_value = "P-value"
   ) %>%
-  fmt_number(columns = c(ChiSq, p_value), decimals = 3) %>%
+  fmt_number(columns = vars(ChiSq, p_value), decimals = 3) %>%
   tab_options(
     table.font.size = 14,
-    heading.title.font.size = 16
+    heading.title.font.size = 16,
+    heading.subtitle.font.size = 13
   )
+
 ```
 
----
+#Visualizing growth rate by wound and fish presence (summary line plot)
+```{r}
 
-# 7. Publication Figure: Growth Rate
+  bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("Large", "Small", "No Wound")) 
+  bw_sa_stats$fsh <-  factor(bw_sa_stats$fish, levels = c("No Fish", "Fish"))
 
-```{r pub-figure-growth, fig.width=8, fig.height=6}
-# Prepare data with correct factor ordering
-bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("No Wound", "Small", "Large"))
-bw_sa_stats$fish <- factor(bw_sa_stats$fish, levels = c("No Fish", "Fish"))
 
-# Create publication-quality figure
-growth_rate_plot <- bw_sa_stats %>%
-  ggplot(aes(x = wound, y = bw_sa_time, color = fish, shape = fish)) +
+  growth_rate_plot<- bw_sa_stats %>% 
+    ggplot(aes(x = wound, y = bw_sa_time, color = fish, shape = fish)) +
   
-  # Individual data points
   geom_jitter(
     aes(color = fish),
     position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6),
@@ -544,7 +405,7 @@ growth_rate_plot <- bw_sa_stats %>%
     shape = 16
   ) +
   
-  # Mean points
+  # Mean points (dodged)
   stat_summary(
     fun = mean,
     geom = "point",
@@ -552,42 +413,31 @@ growth_rate_plot <- bw_sa_stats %>%
     position = position_dodge(width = 0.6)
   ) +
   
-  # Error bars (mean ± SD)
   stat_summary(
     fun.data = function(x) {
-      data.frame(y = mean(x), ymin = mean(x) - sd(x), ymax = mean(x) + sd(x))
+      data.frame(
+        y = mean(x),
+        ymin = mean(x) - sd(x),
+        ymax = mean(x) + sd(x)
+      )
     },
     geom = "errorbar",
-    width = 0,
+    width = 0,               
     size = 1,
     position = position_dodge(width = 0.6)
   ) +
   
-  # Scales
-  scale_color_manual(
-    values = fish_palette,
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
-  ) +
-  scale_shape_manual(
-    values = c(16, 18),
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
-  ) +
+  scale_color_manual(values = fish_palette) +
+ scale_shape_manual(values = c(16, 18)) +
+
   
-  # Theme
-  theme_minimal(base_size = 16) +
+  theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    axis.title = element_text(size = 20, face = "bold"),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 16),
-    legend.position = "top",
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(1.5, "lines"),
-    legend.margin = margin(0, 0, 10, 0),
-    legend.box.spacing = unit(0.5, "lines"),
+    axis.title = element_text(size = 15, face = "bold"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 10),
+    legend.position = "none",
     axis.line.x = element_line(color = "black", size = 0.5),
     axis.line.y = element_line(color = "black", size = 0.5)
   ) +
@@ -596,120 +446,13 @@ growth_rate_plot <- bw_sa_stats %>%
     x = "Wound Size"
   )
 
-print(growth_rate_plot)
-
-# Save figure
 ggsave(
   filename = here("figures", "growth", "summary_line_growth_rate_by_wound_fish.pdf"),
   plot = growth_rate_plot,
-  width = 7, height = 5, dpi = 600, device = cairo_pdf
+  width = 7,
+  height = 5,
+  dpi = 300
 )
 
-ggsave(
-  filename = here("figures", "growth", "summary_line_growth_rate_by_wound_fish.png"),
-  plot = growth_rate_plot,
-  width = 8, height = 6, dpi = 300, bg = "white"
-)
-
-cat("✓ Growth rate figure saved\n")
 ```
 
----
-
-# 8. Model Diagnostics
-
-## DHARMa Diagnostics: Growth Rate Model
-
-```{r dharma-growth-rate}
-library(DHARMa)
-
-cat("=== Diagnostics for Growth Rate Model (bw_sa_time) ===\n\n")
-sim_growth_full <- simulateResiduals(fittedModel = mod_int_sa, n = 1000)
-
-# Save diagnostic plot
-png(
-  here("figures", "diagnostics", "growth_dharma_full.png"),
-  width = 7, height = 6, units = "in", res = 600, bg = "white"
-)
-plot(sim_growth_full, main = "DHARMa Diagnostics: Growth Rate Full Model")
-dev.off()
-
-# Statistical tests
-cat("\nDispersion test:\n")
-print(testDispersion(sim_growth_full))
-
-cat("\nOutlier test:\n")
-print(testOutliers(sim_growth_full))
-```
-
-## Predicted vs Observed: Growth Model
-
-```{r pred-obs-growth, fig.width=10, fig.height=8}
-bw_sa_stats$pred_growth <- predict(mod_int_sa)
-
-p_growth_fit <- ggplot(bw_sa_stats, aes(x = pred_growth, y = bw_sa_time)) +
-  geom_point(aes(color = fish), size = 2.5, alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, color = "darkred", linewidth = 1) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50") +
-  scale_color_manual(values = fish_palette) +
-  labs(
-    x = "Predicted Growth Rate (mg/cm²/day)",
-    y = "Observed Growth Rate (mg/cm²/day)",
-    title = "Growth Model Fit: Predicted vs Observed",
-    color = "Fish Presence"
-  ) +
-  theme_bw(base_size = 14) +
-  theme(legend.position = "top")
-
-print(p_growth_fit)
-
-ggsave(
-  here("figures", "diagnostics", "growth_fit_scatterplot.png"),
-  p_growth_fit,
-  width = 10, height = 8, dpi = 300, bg = "white"
-)
-```
-
-## DHARMa Diagnostics: Allometric Model
-
-```{r dharma-allometric}
-cat("\n\n=== Diagnostics for Allometric Scaling Model ===\n\n")
-sim_allometric <- simulateResiduals(fittedModel = model_lmer, n = 1000)
-
-png(
-  here("figures", "diagnostics", "allometric_dharma.png"),
-  width = 7, height = 6, units = "in", res = 600, bg = "white"
-)
-plot(sim_allometric, main = "DHARMa Diagnostics: Allometric Scaling Model")
-dev.off()
-
-cat("\nDispersion test:\n")
-print(testDispersion(sim_allometric))
-
-cat("\nOutlier test:\n")
-print(testOutliers(sim_allometric))
-```
-
-## Model Summary Statistics
-
-```{r model-summaries}
-cat("\n=== Growth Model Diagnostics Summary ===\n")
-cat("Residual standard deviation:", sigma(mod_int_sa), "\n")
-cat("Number of observations:", nobs(mod_int_sa), "\n")
-cat("\nResidual summary:\n")
-print(summary(residuals(mod_int_sa, type = "pearson")))
-```
-
----
-
-# 9. Session Information
-
-```{r session-info}
-sessionInfo()
-```
-
----
-
-**Analysis Complete** ✓
-
-All figures and diagnostics saved to `figures/` directory.
