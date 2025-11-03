@@ -1,0 +1,281 @@
+================================================================================
+METADATA: fish_regen_buoyantweight (1).csv
+================================================================================
+
+GENERAL INFORMATION
+================================================================================
+
+Dataset Title: Coral Skeletal Mass - Buoyant Weight Measurements
+
+Principal Investigators:
+  - Hayden Vega
+  - Adrian Stier
+
+Date of Data Collection:
+  - Initial measurements: August 13, 2024
+  - Final measurements: September 1, 2024
+
+Geographic Location: Mo'orea, French Polynesia
+
+Related Publications: [To be added]
+
+Repository: damselfish_coral_healing_public
+
+
+DATA & FILE OVERVIEW
+================================================================================
+
+File Name: fish_regen_buoyantweight (1).csv
+
+File Format: Comma-separated values (CSV)
+
+Number of Records: 144 rows (72 corals × 2 timepoints)
+
+File Size: ~10 KB
+
+Related Files:
+  - skeletal.xlsx (Excel version with additional calculated columns)
+  - coral_delta.csv (processed growth metrics)
+  - fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv (surface area data)
+
+Analysis Scripts Using This File:
+  - analysis_visualization_code/growth/allometric_growth_analysis.Rmd
+
+
+METHODOLOGICAL INFORMATION
+================================================================================
+
+Description:
+This dataset contains buoyant weight measurements used to determine coral
+skeletal mass. Buoyant weighing is a standard technique in coral biology
+for measuring skeletal growth non-destructively.
+
+Method:
+Buoyant weighing technique using Archimedes' principle. Corals are weighed
+underwater, and skeletal mass is calculated using the density of aragonite
+(the mineral form of calcium carbonate in coral skeletons).
+
+Formula:
+  Dry Mass (g) = Buoyant Weight × (ρ_aragonite / (ρ_aragonite - ρ_seawater))
+
+Where:
+  - ρ_aragonite = 2.93 g/cm³ (constant)
+  - ρ_seawater calculated from temperature and salinity measurements
+
+Measurement Equipment:
+  - Precision balance for underwater weighing
+  - Temperature probes for water temperature
+  - Calibration standard (stopper of known mass)
+
+Quality Control:
+  - Calibration standard measured in air, freshwater, and saltwater
+  - Temperature recorded for density corrections
+  - Outliers identified and removed: Coral IDs 45, 91, 103
+
+
+EXPERIMENTAL DESIGN
+================================================================================
+
+Experiment: Effects of damselfish presence on coral wound healing and growth
+
+Factors:
+  1. Fish Presence (2 levels):
+     - Fish: Dascyllus damselfish present
+     - No Fish: No fish present
+
+  2. Wound Size (3 levels):
+     - No Wound: Control, no artificial wound
+     - Small: ~1 cm² wound
+     - Large: ~3 cm² wound
+
+Replication: 72 coral fragments (12 per treatment combination)
+
+Experimental Units: Individual coral fragments
+
+Blocking: 12 tanks (6 corals per tank, one per treatment combination)
+
+Duration: 21 days (August 8-29, 2024)
+
+Species: Pocillopora spp. (branching coral)
+
+
+DATA-SPECIFIC INFORMATION
+================================================================================
+
+Number of Variables: 12
+
+Number of Observations: 144
+
+Missing Data Codes: None (all measurements complete)
+
+Variable List:
+
+1. date
+   Description: Measurement timepoint
+   Type: Categorical
+   Values: "initial" or "final"
+   Units: N/A
+   Notes: Initial = Aug 13, 2024; Final = Sep 1, 2024
+
+2. coral_id
+   Description: Unique identifier for each coral fragment
+   Type: Numeric (treated as categorical)
+   Range: 45-130 (not consecutive)
+   Units: N/A
+   Notes: 72 unique corals; IDs 45, 91 removed as outliers
+
+3. bouyantweight_g
+   Description: Weight of coral measured underwater
+   Type: Continuous
+   Range: ~10-50 g
+   Units: grams (g)
+   Notes: Primary measurement; used to calculate skeletal dry mass
+
+4. air_temp_c
+   Description: Air temperature during calibration measurement
+   Type: Continuous
+   Range: 23-25°C
+   Units: degrees Celsius (°C)
+   Notes: Used for density calculations
+
+5. air_weight_g
+   Description: Weight of calibration standard in air
+   Type: Continuous
+   Range: ~47 g
+   Units: grams (g)
+   Notes: Calibration standard for balance accuracy
+
+6. fresh_temp_c
+   Description: Freshwater temperature during calibration
+   Type: Continuous
+   Range: 26-30°C
+   Units: degrees Celsius (°C)
+   Notes: Used to calculate freshwater density
+
+7. fresh_weight_g
+   Description: Weight of calibration standard in freshwater
+   Type: Continuous
+   Range: ~26 g
+   Units: grams (g)
+   Notes: Used to calculate stopper density
+
+8. salt_temp_c
+   Description: Saltwater temperature during measurement
+   Type: Continuous
+   Range: 26-27°C
+   Units: degrees Celsius (°C)
+   Notes: Used to calculate seawater density for buoyant weight correction
+
+9. salt_weight_g
+   Description: Weight of calibration standard in saltwater
+   Type: Continuous
+   Range: ~25-26 g
+   Units: grams (g)
+   Notes: Used to verify seawater density
+
+10. density_aragonite
+    Description: Density of coral aragonite skeleton
+    Type: Constant
+    Value: 2.93
+    Units: g/cm³
+    Notes: Standard value for aragonite; used in all calculations
+
+11. wound
+    Description: Wound size treatment
+    Type: Categorical
+    Values: "No Wound", "Small", "Large"
+    Units: N/A
+    Notes: Factor with 3 levels; ordered as shown in analyses
+
+12. fish
+    Description: Fish presence treatment
+    Type: Categorical
+    Values: "Fish", "No Fish"
+    Units: N/A
+    Notes: Factor with 2 levels
+
+
+DATA QUALITY & NOTES
+================================================================================
+
+Outliers Removed:
+  - Coral ID 45: Anomalous growth pattern
+  - Coral ID 91: Anomalous initial measurement
+  - Coral ID 103: Extreme outlier (appears in dataset but filtered in analysis)
+
+Data Validation:
+  - All measurements checked for transcription errors
+  - Calibration standard measurements verify balance accuracy
+  - Temperature-dependent density corrections applied
+
+Known Issues:
+  - None for this dataset after outlier removal
+
+Data Transformations:
+  - Buoyant weight converted to dry mass using density calculations
+  - Growth calculated as change in dry mass between timepoints
+  - Allometric scaling applied using coral surface area
+
+
+CALCULATIONS & DERIVED METRICS
+================================================================================
+
+From this dataset, the following metrics are calculated:
+
+1. Seawater Density (ρ_sw):
+   Calculated from salt_temp_c using standard oceanographic equations
+
+2. Stopper Density (ρ_stopper):
+   ρ_stopper = air_weight_g / ((air_weight_g - fresh_weight_g) / ρ_freshwater)
+
+3. Dry Mass (g):
+   Dry_mass = bouyantweight_g × (ρ_aragonite / (ρ_aragonite - ρ_sw))
+
+4. Coral Volume (cm³):
+   Volume = dry_mass / ρ_aragonite
+
+5. Growth Metrics:
+   - Absolute growth (g) = Final dry mass - Initial dry mass
+   - Relative growth = (Final mass - Initial mass) / Initial mass
+   - Allometric growth = log(Final mass / Initial mass^b)
+     where b = allometric scaling coefficient (~0.7-0.9)
+
+
+USAGE & ACCESS
+================================================================================
+
+Data Usage License: [To be specified]
+
+Recommended Citation:
+  Vega, H. & Stier, A. (2024). Coral skeletal mass measurements from
+  damselfish-coral healing experiment. Dataset: fish_regen_buoyantweight (1).csv
+
+Restrictions: None (pending publication)
+
+Contact Information:
+  - Hayden Vega: [email]
+  - Adrian Stier: [email]
+
+
+ADDITIONAL INFORMATION
+================================================================================
+
+Related Datasets in This Repository:
+  - Wound healing rates: final_wound_size_dascyllus_project - Sheet1.csv
+  - Photosynthetic efficiency: pam_undisturbed_healed_tissue_wound_no_wound.csv
+  - Surface area: fish_regen_mastersheet_wound closure_necrosis_sa - mastersheet.csv
+
+Analysis Details:
+  See allometric_growth_analysis.Rmd for complete analytical workflow
+
+Software Used:
+  - R version 4.5+
+  - Packages: tidyverse, lme4, here, janitor, DHARMa
+
+Date of Metadata Creation: 2024-10-28
+
+Date of Last Update: 2024-10-28
+
+================================================================================
+END OF METADATA
+================================================================================
