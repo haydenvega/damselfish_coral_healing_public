@@ -31,29 +31,29 @@ knitr::opts_chunk$set(
 
 **Experimental Design**:
 
-- **Factors**: Fish presence (Present/Absent) × Wound size (None/Small/Large)
-- **Sample size**: 72 coral fragments
-- **Duration**: 21 days
-- **Location**: Mo'orea, French Polynesia
-- **Response variables**:
-  - Buoyant weight (skeletal mass)
-  - Allometrically-scaled growth
-  - Growth rate per surface area per day
+-   **Factors**: Fish presence (Present/Absent) × Wound size (None/Small/Large)
+-   **Sample size**: 72 coral fragments
+-   **Duration**: 21 days
+-   **Location**: Mo'orea, French Polynesia
+-   **Response variables**:
+    -   Buoyant weight (skeletal mass)
+    -   Allometrically-scaled growth
+    -   Growth rate per surface area per day
 
 ## Analysis Overview
 
 This document contains:
 
-1. **Data Import & Preparation**
-2. **Allometric Scaling Analysis** (size-corrected growth)
-3. **Surface Area Calibration**
-4. **Growth Rate Models** (mixed-effects)
-5. **Publication Figures**
-6. **Comprehensive Diagnostics**
+1.  **Data Import & Preparation**
+2.  **Allometric Scaling Analysis** (size-corrected growth)
+3.  **Surface Area Calibration**
+4.  **Growth Rate Models** (mixed-effects)
+5.  **Publication Figures**
+6.  **Comprehensive Diagnostics**
 
 **Key Methodology**: We use **allometric scaling** to correct for initial coral size differences, allowing fair comparison of growth rates across all fragments.
 
----
+------------------------------------------------------------------------
 
 # 1. Setup & Data Import
 
@@ -120,7 +120,7 @@ cat("  - Surface area data:", nrow(sa), "corals\n")
 cat("  - Tank assignments:", nrow(tank_df), "corals\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 2. Data Preparation
 
@@ -168,6 +168,14 @@ bw_sa_wide <- left_join(bw_wide, sa_adjusted, by = "coral_id") %>%
     tank = as.factor(tank)
   ) %>%
   mutate(tank = factor(tank, levels = sort(unique(as.numeric(as.character(tank))))))
+# Prepare clean dataset
+bw_sa_df <- bw_sa_wide %>%
+  drop_na(initial_weight, final_weight, wound) %>%
+  filter(coral_id != 103) %>%  # Remove outlier
+  mutate(
+    delta_mass = final_weight - initial_weight,
+    wound = factor(wound, levels = c("No Wound", "Small", "Large"))
+  )
 
 cat("✓ Surface area data merged\n")
 cat("  - Mean initial SA:", round(mean(bw_sa_wide$sa_cal, na.rm = TRUE), 2), "cm²\n")
@@ -186,7 +194,7 @@ cat("✓ Tank metadata merged\n")
 cat("  - Number of tanks:", nlevels(bw_merged$tank), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 3. Allometric Scaling Analysis
 
@@ -206,7 +214,7 @@ $$\text{Scaled Growth} = \log\left(\frac{\text{Final Mass}}{\text{Initial Mass}^
 
 ```{r prep-allometric-data}
 # Create dataset with log-transformed weights
-log_df <- bw_merged %>%
+log_df <- bw_sa_df %>%
   mutate(
     log_i_weight = log(initial_weight),
     log_f_weight = log(final_weight),
@@ -309,7 +317,7 @@ b_value_gt %>%
   )
 ```
 
----
+------------------------------------------------------------------------
 
 # 4. Surface Area Growth Analysis
 
@@ -317,22 +325,15 @@ b_value_gt %>%
 
 ```{r prep-sa-data}
 # Create dataset with surface area and time adjustments
-bw_sa_df <- bw_sa_wide %>%
-  drop_na(initial_weight, final_weight, wound) %>%
-  filter(coral_id != 103) %>%  # Remove outlier
-  mutate(
-    delta_mass = final_weight - initial_weight,
-    wound = factor(wound, levels = c("No Wound", "Small", "Large"))
-  )
 
-bw_sa_stats <- bw_sa_df %>%
+bw_sa_stats <- log_df %>%
   drop_na(initial_weight, final_weight, fish, wound, tank) %>%
   mutate(
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
     fish = factor(fish),
     tank = factor(tank),
     # Growth rate: mass change per surface area per day
-    bw_sa_time = (final_weight - initial_weight) / (sa_cal * 21)
+    bw_sa_time = (growth_ratio) / (sa_cal * 21)
   )
 
 cat("✓ SA-adjusted growth data prepared\n")
@@ -374,7 +375,7 @@ ggsave(
 cat("✓ SA-growth plot saved\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 5. Statistical Models: Allometrically-Scaled Growth
 
@@ -461,9 +462,9 @@ lrt_table %>%
   )
 ```
 
----
+------------------------------------------------------------------------
 
-# 6. Growth Rate Analysis (Mass/SA/Time)
+# 6. Growth Rate Analysis (Scaled Growth/SA/Time)
 
 ## Fit Growth Rate Models
 
@@ -522,14 +523,17 @@ lrt_table_sa %>%
   )
 ```
 
----
+------------------------------------------------------------------------
 
 # 7. Publication Figure: Growth Rate
 
 ```{r pub-figure-growth, fig.width=8, fig.height=6}
 # Prepare data with correct factor ordering
-bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("No Wound", "Small", "Large"))
+bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("Large", "Small", "No Wound"))
 bw_sa_stats$fish <- factor(bw_sa_stats$fish, levels = c("No Fish", "Fish"))
+
+# Prepare data in mg for readability
+bw_sa_stats$bw_sa_time <- bw_sa_stats$bw_sa_time * 1000
 
 # Create publication-quality figure
 growth_rate_plot <- bw_sa_stats %>%
@@ -574,6 +578,7 @@ growth_rate_plot <- bw_sa_stats %>%
     name = "Fish Presence",
     labels = c("No Fish", "Fish")
   ) +
+  coord_cartesian(ylim = c(0, 1.5)) +
   
   # Theme
   theme_minimal(base_size = 16) +
@@ -614,7 +619,7 @@ ggsave(
 cat("✓ Growth rate figure saved\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 8. Model Diagnostics
 
@@ -700,7 +705,7 @@ cat("\nResidual summary:\n")
 print(summary(residuals(mod_int_sa, type = "pearson")))
 ```
 
----
+------------------------------------------------------------------------
 
 # 9. Session Information
 
@@ -708,7 +713,7 @@ print(summary(residuals(mod_int_sa, type = "pearson")))
 sessionInfo()
 ```
 
----
+------------------------------------------------------------------------
 
 **Analysis Complete** ✓
 
