@@ -529,7 +529,7 @@ lrt_table_sa %>%
 
 ```{r pub-figure-growth, fig.width=8, fig.height=6}
 # Prepare data with correct factor ordering
-bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("Large", "Small", "No Wound"))
+bw_sa_stats$wound <- factor(bw_sa_stats$wound, levels = c("No Wound", "Small", "Large"))
 bw_sa_stats$fish <- factor(bw_sa_stats$fish, levels = c("No Fish", "Fish"))
 
 # Prepare data in mg for readability
@@ -544,8 +544,7 @@ growth_rate_plot <- bw_sa_stats %>%
     aes(color = fish),
     position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6),
     size = 2.5,
-    alpha = 0.25,
-    shape = 16
+    alpha = 0.25
   ) +
   
   # Mean points
@@ -556,10 +555,19 @@ growth_rate_plot <- bw_sa_stats %>%
     position = position_dodge(width = 0.6)
   ) +
   
-  # Error bars (mean ± SD)
+   # 95% CI whiskers
   stat_summary(
     fun.data = function(x) {
-      data.frame(y = mean(x), ymin = mean(x) - sd(x), ymax = mean(x) + sd(x))
+      m  <- mean(x)
+      sd <- sd(x)
+      n  <- length(x)
+      se <- sd / sqrt(n)
+      t  <- qt(0.975, df = n - 1)
+      data.frame(
+        y = m,
+        ymin = m - t * se,
+        ymax = m + t * se
+      )
     },
     geom = "errorbar",
     width = 0,
@@ -597,7 +605,7 @@ growth_rate_plot <- bw_sa_stats %>%
     axis.line.y = element_line(color = "black", size = 0.5)
   ) +
   labs(
-    y = "Growth Rate (mg/cm²/day)",
+    y = expression("Growth Rate (" * cm^{-2} ~ day^{-1} * ")"),
     x = "Wound Size"
   )
 
