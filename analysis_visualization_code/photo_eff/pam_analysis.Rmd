@@ -148,10 +148,17 @@ wound_palette <- c(
   "No Wound" = "#f57a38"    # Coral orange
 )
 
-# Fish presence palette (cool vs. warm contrast)
+# Fish palette: Colorblind-safe with high contrast
+# Using darker teal and higher-chroma vermillion (Okabe-Ito inspired)
 fish_palette <- c(
-  "Fish" = "#2b4b52",       # Deep teal (cool = fish present)
-  "No Fish" = "#ad301a"     # Brick red (warm = fish absent)
+  "Fish" = "#0072B2",       # Strong blue (colorblind-safe)
+  "No Fish" = "#D55E00"     # Vermillion/orange-red (high contrast)
+)
+
+# Fill palette for grayscale distinction
+fish_fill_palette <- c(
+  "Fish" = "#0072B2",       # Strong blue fill
+  "No Fish" = "white"       # White fill (open appearance)
 )
 
 # Set factor level ordering for consistent plotting
@@ -364,6 +371,19 @@ print(pam_avg_interaction)
 
 Some coral fragments developed algal colonization during the experiment. We need to test whether algae presence confounds our fish and wound effects on photosynthetic efficiency.
 
+## Prepare Healed Tissue Dataset
+
+```{r prep-pam-healed}
+# Filter to only wounded corals (those that have healed_tissue data)
+# This excludes "No Wound" controls for the algae analysis
+pam_healed <- pam_undisturbed_healed_tissue_wound_no_wound %>%
+  filter(wound != "No Wound") %>%
+  filter(!is.na(algae))
+
+cat("✓ Healed tissue dataset prepared\n")
+cat("  - Observations:", nrow(pam_healed), "wounded corals\n")
+```
+
 ## Visualize Algae Distribution
 
 ```{r visualize-algae}
@@ -452,81 +472,133 @@ cat("  - Conclusion: NO significant effect of algae (p = 0.106)\n")
 # Mean ± SD with jittered raw data
 # Dodged by fish presence
 
-pam_line_plot_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>%
-  ggplot(aes(x = wound, y = fv_fm, color = fish, group = fish, shape = fish)) +
+# Calculate summary statistics for plotting
+pam_summary <- pam_undisturbed_healed_tissue_wound_no_wound %>%
+  group_by(wound, fish) %>%
+  summarize(
+    mean_val = mean(fv_fm),
+    sd_val = sd(fv_fm),
+    n = n(),
+    se = sd_val / sqrt(n),
+    ci = qt(0.975, df = n - 1) * se,
+    ci_lower = mean_val - ci,
+    ci_upper = mean_val + ci,
+    .groups = "drop"
+  )
 
-  # Raw data (jittered and dodged)
+# Define gap size around mean point (in data units)
+# This creates space so whiskers don't pass through the mean point
+gap_size <- 0.004  # Adjust based on y-axis scale (0.5 to 0.75)
+
+# Grayscale compatible: No Fish = white fill, Fish = dark fill
+pam_line_plot_fish <- pam_undisturbed_healed_tissue_wound_no_wound %>%
+  ggplot(aes(x = wound, y = fv_fm, color = fish, fill = fish, group = fish, shape = fish)) +
+
+  # Raw data with solid white fill for No Fish
   geom_jitter(
-    alpha = 0.25,
+    alpha = 0.5,
     size = 2.5,
+    stroke = 0.8,
     position = position_jitterdodge(
       jitter.width = 0.1,
       dodge.width = 0.6
     )
   ) +
 
-  # Mean points (dodged)
-  stat_summary(
-    fun = mean,
-    geom = "point",
-    size = 5,
-    position = position_dodge(width = 0.6)
+  # Lower whisker (from CI lower bound to just below mean)
+  geom_segment(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = ci_lower, yend = mean_val - gap_size,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
   ) +
 
-   # 95% CI whiskers
-  stat_summary(
-    fun.data = function(x) {
-      m  <- mean(x)
-      sd <- sd(x)
-      n  <- length(x)
-      se <- sd / sqrt(n)
-      t  <- qt(0.975, df = n - 1)
-      data.frame(
-        y = m,
-        ymin = m - t * se,
-        ymax = m + t * se
-      )
-    },
-    geom = "errorbar",
-    width = 0,
-    size = 1,
-    position = position_dodge(width = 0.6)
+  # Upper whisker (from just above mean to CI upper bound)
+  geom_segment(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val + gap_size, yend = ci_upper,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
   ) +
 
-  # Color and shape scales
+  # White outline behind mean points for visibility
+  geom_point(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val),
+    size = 5.5,
+    color = "white",
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # Mean points with solid fill
+  geom_point(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val, color = fish, fill = fish, shape = fish),
+    size = 4.5,
+    stroke = 1.2,
+    inherit.aes = FALSE
+  ) +
+
+  # Scales - colorblind-safe with high contrast
   scale_color_manual(
-    values = fish_palette,
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
+    values = c("No Fish" = "#D55E00", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_fill_manual(
+    values = c("No Fish" = "white", "Fish" = "#0072B2"),
+    name = "Fish Presence"
   ) +
   scale_shape_manual(
-    values = c(16, 18),
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
+    values = c("No Fish" = 21, "Fish" = 21),  # Both use fillable circles
+    name = "Fish Presence"
   ) +
 
   # Y-axis limits
-  scale_y_continuous(limits = c(0.5, 0.75)) +
+  scale_y_continuous(
+    limits = c(0.5, 0.75),
+    breaks = seq(0.5, 0.75, by = 0.05),
+    expand = c(0, 0.01)
+  ) +
 
-  # Labels and theme
+  # Theme - publication quality
   labs(
     y = "Photosynthetic Efficiency (Fv/Fm)",
     x = "Wound Size"
   ) +
-  theme_minimal(base_size = 16) +
+  theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
-    axis.title = element_text(size = 20, face = "bold"),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16, face = "bold", margin = margin(t = 12)),
+    axis.title.y = element_text(size = 16, face = "bold", margin = margin(r = 12)),
+    axis.text.x = element_text(size = 14, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
     legend.position = "top",
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(1.5, "lines"),
-    legend.margin = margin(0, 0, 10, 0),
-    legend.box.spacing = unit(0.5, "lines"),
-    axis.line.x = element_line(color = "black", size = 0.5),
-    axis.line.y = element_line(color = "black", size = 0.5)
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1.2, "lines"),
+    legend.margin = margin(0, 0, 8, 0),
+    legend.box.spacing = unit(0.3, "lines"),
+    legend.background = element_rect(fill = "white", color = NA),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.margin = margin(10, 15, 10, 10)
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    fill = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    shape = guide_legend(override.aes = list(size = 4, alpha = 1))
   )
 
 print(pam_line_plot_fish)

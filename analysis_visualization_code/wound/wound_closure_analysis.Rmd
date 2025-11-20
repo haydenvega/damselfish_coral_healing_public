@@ -96,15 +96,25 @@ theme_set(theme_bw() + theme(panel.grid = element_blank(), plot.background = ele
 
 ```{r define-aesthetics}
 # Consistent color schemes for all figures
+# Designed for grayscale compatibility
+
 wound_palette <- c(
   "Large" = "#FF8B00",     # Orange
   "Small" = "#be8333",     # Tan
   "No Wound" = "#485900"   # Olive green
 )
 
+# Fish palette: Colorblind-safe with high contrast
+# Using darker teal and higher-chroma vermillion (Okabe-Ito inspired)
 fish_palette <- c(
-  "Fish" = "#2b4b52",      # Teal
-  "No Fish" = "#ad301a"    # Burnt red
+  "Fish" = "#0072B2",      # Strong blue (colorblind-safe)
+  "No Fish" = "#D55E00"    # Vermillion/orange-red (high contrast)
+)
+
+# Fill palette for grayscale distinction
+fish_fill_palette <- c(
+  "Fish" = "#0072B2",      # Strong blue fill
+  "No Fish" = "white"      # White fill (open appearance)
 )
 ```
 
@@ -374,78 +384,133 @@ print(tidy(rate_full, effects = "fixed", conf.int = TRUE))
 # 5. Publication Figure: Healing Rate
 
 ```{r pub-figure-healing, fig.width=8, fig.height=6}
-# Create publication-quality figure
-healing_plot <- percent_closure %>%
-  ggplot(aes(x = wound, y = healing_rate, color = fish, shape = fish)) +
+# Drop unused factor levels for proper positioning
+percent_closure_plot <- percent_closure %>%
+  mutate(wound = droplevels(wound))
 
-  # Individual data points (jittered and dodged)
+# Calculate summary statistics for plotting
+healing_summary <- percent_closure_plot %>%
+  group_by(wound, fish) %>%
+  summarize(
+    mean_val = mean(healing_rate),
+    sd_val = sd(healing_rate),
+    n = n(),
+    se = sd_val / sqrt(n),
+    ci = qt(0.975, df = n - 1) * se,
+    ci_lower = mean_val - ci,
+    ci_upper = mean_val + ci,
+    .groups = "drop"
+  )
+
+# Define gap size around mean point (in data units)
+# This creates space so whiskers don't pass through the mean point
+gap_size <- 0.006  # Adjust based on y-axis scale
+
+# Create publication-quality figure
+# Grayscale compatible: No Fish = white fill, Fish = dark fill
+healing_plot <- percent_closure_plot %>%
+  ggplot(aes(x = wound, y = healing_rate, color = fish, fill = fish, shape = fish)) +
+
+  # Individual data points with solid white fill for No Fish
   geom_jitter(
-    aes(color = fish, shape = fish),
     position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6),
     size = 2.5,
-    alpha = 0.25
-    ) +
-
-  # Mean points
-  stat_summary(
-    fun = mean,
-    geom = "point",
-    size = 5,
-    position = position_dodge(width = 0.6)
+    alpha = 0.5,
+    stroke = 0.8
   ) +
 
-   # 95% CI whiskers
-  stat_summary(
-    fun.data = function(x) {
-      m  <- mean(x)
-      sd <- sd(x)
-      n  <- length(x)
-      se <- sd / sqrt(n)
-      t  <- qt(0.975, df = n - 1)
-      data.frame(
-        y = m,
-        ymin = m - t * se,
-        ymax = m + t * se
-      )
-    },
-    geom = "errorbar",
-    width = 0,
-    size = 1,
-    position = position_dodge(width = 0.6)
+  # Lower whisker (from CI lower bound to just below mean)
+  geom_segment(
+    data = healing_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = ci_lower, yend = mean_val - gap_size,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
   ) +
 
-  # Color and shape scales
+  # Upper whisker (from just above mean to CI upper bound)
+  geom_segment(
+    data = healing_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val + gap_size, yend = ci_upper,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # White outline behind mean points for visibility
+  geom_point(
+    data = healing_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val),
+    size = 5.5,
+    color = "white",
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # Mean points with solid fill
+  geom_point(
+    data = healing_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val, color = fish, fill = fish, shape = fish),
+    size = 4.5,
+    stroke = 1.2,
+    inherit.aes = FALSE
+  ) +
+
+  # Scales - colorblind-safe with high contrast
   scale_color_manual(
-    values = fish_palette,
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
+    values = c("No Fish" = "#D55E00", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_fill_manual(
+    values = c("No Fish" = "white", "Fish" = "#0072B2"),
+    name = "Fish Presence"
   ) +
   scale_shape_manual(
-    values = c(16, 18),
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
-  )+
-  scale_y_continuous(limits = c(0, 0.35)) +
+    values = c("No Fish" = 21, "Fish" = 21),  # Both use fillable circles
+    name = "Fish Presence"
+  ) +
+  scale_y_continuous(
+    limits = c(0, 0.35),
+    breaks = seq(0, 0.35, by = 0.05),
+    expand = c(0, 0)
+  ) +
 
-  # Theme and aesthetics
-  theme_minimal(base_size = 16) +
+  # Theme - publication quality
+  theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
-    axis.title = element_text(size = 20, face = "bold"),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16, face = "bold", margin = margin(t = 12)),
+    axis.title.y = element_text(size = 16, face = "bold", margin = margin(r = 12)),
+    axis.text.x = element_text(size = 14, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
     legend.position = "top",
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(1.5, "lines"),
-    legend.margin = margin(0, 0, 10, 0),
-    legend.box.spacing = unit(0.5, "lines"),
-    axis.line.x = element_line(color = "black", size = 0.5),
-    axis.line.y = element_line(color = "black", size = 0.5)
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1.2, "lines"),
+    legend.margin = margin(0, 0, 8, 0),
+    legend.box.spacing = unit(0.3, "lines"),
+    legend.background = element_rect(fill = "white", color = NA),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.margin = margin(10, 15, 10, 10)
   ) +
   labs(
-    y = "Healing Rate (cm²/day)",
+    y = expression("Healing Rate (cm"^2*"/day)"),
     x = "Wound Size"
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    fill = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    shape = guide_legend(override.aes = list(size = 4, alpha = 1))
   )
 
 # Display plot

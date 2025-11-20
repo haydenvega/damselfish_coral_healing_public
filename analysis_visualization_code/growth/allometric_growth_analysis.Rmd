@@ -45,13 +45,19 @@ knitr::opts_chunk$set(
 This document contains:
 
 1.  **Data Import & Preparation**
-2.  **Allometric Scaling Analysis** (size-corrected growth)
-3.  **Surface Area Calibration**
-4.  **Growth Rate Models** (mixed-effects)
+2.  **Full Model Analysis** (ANCOVA-style with initial mass as covariate)
+3.  **Allometric Scaling Visualization** (size-corrected growth)
+4.  **Surface Area Growth Rate Analysis**
 5.  **Publication Figures**
 6.  **Comprehensive Diagnostics**
 
-**Key Methodology**: We use **allometric scaling** to correct for initial coral size differences, allowing fair comparison of growth rates across all fragments.
+**Key Methodology**: We use an **ANCOVA-style approach** where log(initial mass) is included as a covariate in the full model with treatment effects. This:
+
+- Estimates the allometric coefficient (*b*) without bias from treatment effects
+- Tests treatment effects while properly controlling for initial coral size
+- Avoids the two-step estimation problem of estimating *b* from pooled data
+
+For visualization, we calculate size-corrected growth using the *b* from the full model.
 
 ------------------------------------------------------------------------
 
@@ -81,15 +87,25 @@ cat("✓ Packages loaded successfully\n")
 
 ```{r define-aesthetics}
 # Consistent color schemes for all figures
+# Designed for grayscale compatibility
+
 wound_palette <- c(
   "Large" = "#FF8B00",     # Orange
-  "Small" = "#be8333",     # Tan  
+  "Small" = "#be8333",     # Tan
   "No Wound" = "#485900"   # Olive green
 )
 
+# Fish palette: Colorblind-safe with high contrast
+# Using darker teal and higher-chroma vermillion (Okabe-Ito inspired)
 fish_palette <- c(
-  "Fish" = "#2b4b52",      # Teal
-  "No Fish" = "#ad301a"    # Burnt red
+  "Fish" = "#0072B2",      # Strong blue (colorblind-safe)
+  "No Fish" = "#D55E00"    # Vermillion/orange-red (high contrast)
+)
+
+# Fill palette for grayscale distinction
+fish_fill_palette <- c(
+  "Fish" = "#0072B2",      # Strong blue fill
+  "No Fish" = "white"      # White fill (open appearance)
 )
 ```
 
@@ -202,11 +218,18 @@ cat("  - Number of tanks:", nlevels(bw_merged$tank), "\n")
 
 **Problem**: Larger corals grow faster simply because they're bigger, not necessarily because they're healthier.
 
-**Solution**: Allometric scaling adjusts growth for initial size using the relationship:
+**Solution**: We use an ANCOVA-style approach where we include log(initial mass) as a covariate in our full model with treatment effects. This simultaneously:
 
-$$\log(\text{Final Mass}) = \alpha + b \times \log(\text{Initial Mass})$$
+1. Estimates the allometric coefficient (*b*) while accounting for treatment effects
+2. Tests treatment effects while controlling for initial size
 
-Where $b$ is the **allometric coefficient**. We then calculate **size-corrected growth** as:
+The model structure is:
+
+$$\log(\text{Final Mass}) = \alpha + b \times \log(\text{Initial Mass}) + \text{Fish} + \text{Wound} + \text{Fish} \times \text{Wound} + \text{Tank}$$
+
+This approach avoids the bias that would occur if we estimated *b* from a pooled model ignoring treatments (see Osenberg & Mittlebach 1989; Packard & Boardman 1999).
+
+For visualization, we calculate **size-corrected growth** using the *b* from the full model:
 
 $$\text{Scaled Growth} = \log\left(\frac{\text{Final Mass}}{\text{Initial Mass}^b}\right)$$
 
@@ -226,48 +249,162 @@ cat("✓ Allometric dataset prepared\n")
 cat("  - Valid observations:", nrow(log_df), "corals\n")
 ```
 
-## Fit Allometric Model
+## Fit Full Model with Treatment Effects
+
+This is our **primary analysis**. We fit a single model that includes initial mass as a covariate along with treatment effects. This approach:
+
+- Estimates the allometric coefficient (*b*) without bias from treatment effects
+- Directly tests treatment effects while controlling for initial size
+- Provides the most statistically rigorous inference
 
 ```{r fit-allometric-model}
-# Linear mixed-effects model: final ~ initial + random(tank)
-model_lmer <- lmer(log_f_weight ~ log_i_weight + (1 | tank), data = log_df)
+# Full model: includes initial mass AND treatment effects
+# This is the primary analysis - treatment effects are tested here
+model_full <- lmer(
+  log_f_weight ~ log_i_weight + fish * wound + (1 | tank),
+  data = log_df,
+  REML = FALSE  # Use ML for likelihood ratio tests
+)
 
-cat("=== Allometric Model Summary ===\n")
-summary(model_lmer)
+cat("=== Full Model Summary (Primary Analysis) ===\n")
+summary(model_full)
 
 # Extract allometric coefficient (b-value) with 95% CI
-b_value <- tidy(model_lmer, effects = "fixed", conf.int = TRUE) %>%
+b_value <- tidy(model_full, effects = "fixed", conf.int = TRUE) %>%
   filter(term == "log_i_weight")
 
-cat("\n=== Allometric Coefficient (b-value) ===\n")
+cat("\n=== Allometric Coefficient (b-value) from Full Model ===\n")
 print(b_value)
+
+# Extract all fixed effects for reporting
+cat("\n=== All Fixed Effects ===\n")
+print(tidy(model_full, effects = "fixed", conf.int = TRUE))
+```
+
+## Likelihood Ratio Tests for Treatment Effects
+
+We test the significance of treatment effects using likelihood ratio tests comparing nested models.
+
+```{r lrt-full-model}
+# Fit reduced models for comparison (all with REML = FALSE)
+model_no_interaction <- lmer(
+  log_f_weight ~ log_i_weight + fish + wound + (1 | tank),
+  data = log_df, REML = FALSE
+)
+
+model_no_fish <- lmer(
+  log_f_weight ~ log_i_weight + wound + (1 | tank),
+  data = log_df, REML = FALSE
+)
+
+model_no_wound <- lmer(
+  log_f_weight ~ log_i_weight + fish + (1 | tank),
+  data = log_df, REML = FALSE
+)
+
+# Likelihood ratio tests
+lrt_interaction <- anova(model_no_interaction, model_full, test = "Chisq")
+lrt_fish <- anova(model_no_fish, model_no_interaction, test = "Chisq")
+lrt_wound <- anova(model_no_wound, model_no_interaction, test = "Chisq")
+
+# Compile results
+lrt_table_full <- tibble(
+  Test = c("Interaction (Fish × Wound)", "Fish Effect", "Wound Effect"),
+  ChiSq = c(lrt_interaction$Chisq[2], lrt_fish$Chisq[2], lrt_wound$Chisq[2]),
+  Df = c(lrt_interaction$Df[2], lrt_fish$Df[2], lrt_wound$Df[2]),
+  p_value = c(lrt_interaction$`Pr(>Chisq)`[2], lrt_fish$`Pr(>Chisq)`[2], lrt_wound$`Pr(>Chisq)`[2])
+) %>%
+  mutate(across(where(is.numeric), round, 3))
+
+# Format as publication table
+lrt_table_full %>%
+  gt() %>%
+  tab_header(
+    title = "Likelihood Ratio Tests: Treatment Effects on Growth",
+    subtitle = "Full model with log(initial mass) as covariate"
+  ) %>%
+  cols_label(
+    Test = "Model Comparison",
+    ChiSq = "χ²",
+    Df = "df",
+    p_value = "P-value"
+  ) %>%
+  fmt_number(columns = c(ChiSq, p_value), decimals = 3) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = p_value,
+      rows = p_value < 0.05
+    )
+  ) %>%
+  tab_options(
+    table.font.size = 14,
+    heading.title.font.size = 16
+  )
 ```
 
 ## Visualize Allometric Relationship
 
 ```{r plot-allometric, fig.width=8, fig.height=6}
-# Generate predicted values
+# Generate predicted values from full model (population-level, no random effects)
+# Use mean values for treatment factors to show overall allometric relationship
 fit_df <- log_df %>%
   select(log_i_weight) %>%
   distinct() %>%
-  arrange(log_i_weight) %>%
-  mutate(predicted = predict(model_lmer, newdata = ., re.form = NA))
+  arrange(log_i_weight)
 
-# Create allometric scaling plot
+# Get the b-value (slope) from full model
+b_est <- fixef(model_full)["log_i_weight"]
+intercept_est <- fixef(model_full)["(Intercept)"]
+
+# Create allometric scaling plot - publication quality
+# Grayscale compatible: No Fish = white fill, Fish = dark fill
 allometric_plot <- ggplot(log_df, aes(x = log_i_weight, y = log_f_weight)) +
-  geom_point(size = 2.2, shape = 21, fill = "steelblue", color = "black", 
-             alpha = 0.8, stroke = 0.3) +
-  geom_line(data = fit_df, aes(x = log_i_weight, y = predicted), 
-            color = "darkred", linewidth = 1.2) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", 
-              color = "gray60", linewidth = 0.8) +
+  geom_point(aes(color = fish, fill = fish, shape = wound), size = 3, alpha = 0.8, stroke = 0.8) +
+  geom_abline(
+    intercept = intercept_est,
+    slope = b_est,
+    color = "black",
+    linewidth = 1
+  ) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed",
+              color = "gray50", linewidth = 0.7) +
+  scale_color_manual(
+    values = c("No Fish" = "#D55E00", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_fill_manual(
+    values = c("No Fish" = "white", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_shape_manual(
+    values = c("No Wound" = 21, "Small" = 22, "Large" = 24),  # Fillable shapes
+    name = "Wound Size"
+  ) +
   labs(
-    title = "Allometric Scaling of Coral Buoyant Weight",
-    subtitle = "Mixed-effects model with tank as random intercept",
     x = "Log Initial Weight (g)",
     y = "Log Final Weight (g)"
   ) +
-  theme_pubr(base_size = 14)
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_text(size = 14, face = "bold", margin = margin(t = 10)),
+    axis.title.y = element_text(size = 14, face = "bold", margin = margin(r = 10)),
+    axis.text = element_text(size = 12, color = "black"),
+    legend.position = "right",
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    legend.key.size = unit(1, "lines"),
+    legend.spacing.y = unit(0.3, "cm"),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    plot.margin = margin(10, 10, 10, 10)
+  ) +
+  guides(
+    color = guide_legend(order = 1, override.aes = list(size = 3)),
+    fill = guide_legend(order = 1, override.aes = list(size = 3)),
+    shape = guide_legend(order = 2, override.aes = list(size = 3))
+  )
 
 print(allometric_plot)
 
@@ -290,8 +427,8 @@ cat("✓ Allometric plot saved\n")
 ## Display b-value Table
 
 ```{r b-value-table}
-# Create formatted table of allometric coefficient
-b_value_gt <- tidy(model_lmer, effects = "fixed", conf.int = TRUE) %>%
+# Create formatted table of allometric coefficient from full model
+b_value_gt <- tidy(model_full, effects = "fixed", conf.int = TRUE) %>%
   filter(term == "log_i_weight") %>%
   transmute(
     Term = "Allometric slope (b-value)",
@@ -303,7 +440,7 @@ b_value_gt %>%
   gt() %>%
   tab_header(
     title = "Estimated Allometric Slope",
-    subtitle = "Mixed-effects model with tank as random intercept"
+    subtitle = "From full model including treatment effects"
   ) %>%
   cols_label(
     Term = "",
@@ -333,7 +470,8 @@ bw_sa_stats <- log_df %>%
     fish = factor(fish),
     tank = factor(tank),
     # Growth rate: mass change per surface area per day
-    bw_sa_time = (growth_ratio) / (sa_cal * 21)
+    # Using delta_mass (g) / surface area (cm²) / time (days)
+    bw_sa_time = delta_mass / (sa_cal * 21)
   )
 
 cat("✓ SA-adjusted growth data prepared\n")
@@ -377,89 +515,75 @@ cat("✓ SA-growth plot saved\n")
 
 ------------------------------------------------------------------------
 
-# 5. Statistical Models: Allometrically-Scaled Growth
+# 5. Scaled Growth for Visualization
 
-## Prepare Scaled Growth Variable
+## Calculate Scaled Growth Variable
+
+For visualization purposes, we calculate size-corrected growth using the *b*-value from the full model. This allows us to plot growth rates that are adjusted for initial coral size.
+
+Note: The **primary statistical inference** comes from the full model in Section 3, which directly tests treatment effects while controlling for initial mass. The scaled growth variable here is for visualization only.
 
 ```{r prep-scaled-growth}
-# Extract b-value from allometric model
-b_est <- b_value$estimate[1]
+# Extract b-value from full model (already calculated above)
+# b_est was defined in the plot-allometric chunk
 
-# Calculate allometrically-scaled growth
-growth_stats <- bw_merged %>%
+# Calculate allometrically-scaled growth for visualization
+growth_stats <- log_df %>%
   drop_na(initial_weight, final_weight, fish, wound, tank) %>%
   mutate(
     wound = factor(wound, levels = c("No Wound", "Small", "Large")),
-    fish = factor(fish),
+    fish = factor(fish, levels = c("No Fish", "Fish")),
     tank = factor(tank),
-    # Size-corrected growth using estimated b-value
+    # Size-corrected growth using estimated b-value from full model
     growth_scaled = log(final_weight / initial_weight^b_est)
   )
 
 cat("✓ Scaled growth variable calculated\n")
-cat("  - Using b-value:", round(b_est, 3), "\n")
+cat("  - Using b-value from full model:", round(b_est, 3), "\n")
 cat("  - Mean scaled growth:", round(mean(growth_stats$growth_scaled, na.rm = TRUE), 4), "\n")
 ```
 
-## Fit Candidate Models
+## Summary Statistics: Scaled Growth by Treatment
 
-```{r fit-scaled-models}
-# Full model with interaction
-mod_int <- lmer(growth_scaled ~ fish * wound + (1 | tank), data = growth_stats)
-
-# Additive model (no interaction)
-mod_add <- lmer(growth_scaled ~ fish + wound + (1 | tank), data = growth_stats)
-
-# Fish-only model
-mod_fish <- lmer(growth_scaled ~ fish + (1 | tank), data = growth_stats)
-
-# Wound-only model
-mod_wound <- lmer(growth_scaled ~ wound + (1 | tank), data = growth_stats)
-
-# Null model
-mod_null <- lmer(growth_scaled ~ 1 + (1 | tank), data = growth_stats)
-
-cat("✓ All models fitted successfully\n")
-```
-
-## Likelihood Ratio Tests
-
-```{r lrt-scaled-growth}
-# Test for interaction
-lrt_interaction <- anova(mod_add, mod_int, test = "Chisq")
-
-# Test for fish effect
-lrt_fish <- anova(mod_wound, mod_add, test = "Chisq")
-
-# Test for wound effect
-lrt_wound <- anova(mod_fish, mod_add, test = "Chisq")
-
-# Compile results
-lrt_table <- tibble(
-  Test = c("Interaction (Fish × Wound)", "Fish Effect", "Wound Effect"),
-  ChiSq = c(lrt_interaction$Chisq[2], lrt_fish$Chisq[2], lrt_wound$Chisq[2]),
-  Df = c(lrt_interaction$Df[2], lrt_fish$Df[2], lrt_wound$Df[2]),
-  p_value = c(lrt_interaction$`Pr(>Chisq)`[2], lrt_fish$`Pr(>Chisq)`[2], lrt_wound$`Pr(>Chisq)`[2])
-) %>%
-  mutate(across(where(is.numeric), round, 3))
-
-# Format table
-lrt_table %>%
-  gt() %>%
-  tab_header(
-    title = "Likelihood Ratio Tests: Allometrically-Scaled Growth"
-  ) %>%
-  cols_label(
-    Test = "Model Comparison",
-    ChiSq = "χ²",
-    Df = "df",
-    p_value = "P-value"
-  ) %>%
-  fmt_number(columns = c(ChiSq, p_value), decimals = 3) %>%
-  tab_options(
-    table.font.size = 14,
-    heading.title.font.size = 16
+```{r summary-scaled-growth}
+# Summary by fish
+scaled_by_fish <- growth_stats %>%
+  group_by(fish) %>%
+  summarize(
+    mean_scaled = mean(growth_scaled, na.rm = TRUE),
+    sd_scaled = sd(growth_scaled, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
   )
+
+cat("\n=== Scaled Growth by Fish Presence ===\n")
+print(scaled_by_fish)
+
+# Summary by wound
+scaled_by_wound <- growth_stats %>%
+  group_by(wound) %>%
+  summarize(
+    mean_scaled = mean(growth_scaled, na.rm = TRUE),
+    sd_scaled = sd(growth_scaled, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+cat("\n=== Scaled Growth by Wound Size ===\n")
+print(scaled_by_wound)
+
+# Summary by interaction
+scaled_by_interaction <- growth_stats %>%
+  group_by(fish, wound) %>%
+  summarize(
+    mean_scaled = mean(growth_scaled, na.rm = TRUE),
+    sd_scaled = sd(growth_scaled, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+cat("\n=== Scaled Growth by Fish × Wound ===\n")
+print(scaled_by_interaction)
 ```
 
 ------------------------------------------------------------------------
@@ -535,78 +659,130 @@ bw_sa_stats$fish <- factor(bw_sa_stats$fish, levels = c("No Fish", "Fish"))
 # Prepare data in mg for readability
 bw_sa_stats$bw_sa_time <- bw_sa_stats$bw_sa_time * 1000
 
+# Calculate summary statistics for plotting
+growth_summary <- bw_sa_stats %>%
+  group_by(wound, fish) %>%
+  summarize(
+    mean_val = mean(bw_sa_time),
+    sd_val = sd(bw_sa_time),
+    n = n(),
+    se = sd_val / sqrt(n),
+    ci = qt(0.975, df = n - 1) * se,
+    ci_lower = mean_val - ci,
+    ci_upper = mean_val + ci,
+    .groups = "drop"
+  )
+
+# Define gap size around mean point (in data units)
+# This creates space so whiskers don't pass through the mean point
+gap_size <- 0.008  # Adjust based on y-axis scale
+
 # Create publication-quality figure
+# Grayscale compatible: No Fish = white fill, Fish = dark fill
 growth_rate_plot <- bw_sa_stats %>%
-  ggplot(aes(x = wound, y = bw_sa_time, color = fish, shape = fish)) +
-  
-  # Individual data points
+  ggplot(aes(x = wound, y = bw_sa_time, color = fish, fill = fish, shape = fish)) +
+
+  # Individual data points with solid white fill for No Fish
   geom_jitter(
-    aes(color = fish),
     position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6),
     size = 2.5,
-    alpha = 0.25
+    alpha = 0.5,
+    stroke = 0.8
   ) +
-  
-  # Mean points
-  stat_summary(
-    fun = mean,
-    geom = "point",
-    size = 5,
-    position = position_dodge(width = 0.6)
+
+  # Lower whisker (from CI lower bound to just below mean)
+  geom_segment(
+    data = growth_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = ci_lower, yend = mean_val - gap_size,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
   ) +
-  
-   # 95% CI whiskers
-  stat_summary(
-    fun.data = function(x) {
-      m  <- mean(x)
-      sd <- sd(x)
-      n  <- length(x)
-      se <- sd / sqrt(n)
-      t  <- qt(0.975, df = n - 1)
-      data.frame(
-        y = m,
-        ymin = m - t * se,
-        ymax = m + t * se
-      )
-    },
-    geom = "errorbar",
-    width = 0,
-    size = 1,
-    position = position_dodge(width = 0.6)
+
+  # Upper whisker (from just above mean to CI upper bound)
+  geom_segment(
+    data = growth_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val + gap_size, yend = ci_upper,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
   ) +
-  
-  # Scales
+
+  # White outline behind mean points for visibility
+  geom_point(
+    data = growth_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val),
+    size = 5.5,
+    color = "white",
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # Mean points with solid fill
+  geom_point(
+    data = growth_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val, color = fish, fill = fish, shape = fish),
+    size = 4.5,
+    stroke = 1.2,
+    inherit.aes = FALSE
+  ) +
+
+  # Scales - colorblind-safe with high contrast
   scale_color_manual(
-    values = fish_palette,
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
+    values = c("No Fish" = "#D55E00", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_fill_manual(
+    values = c("No Fish" = "white", "Fish" = "#0072B2"),
+    name = "Fish Presence"
   ) +
   scale_shape_manual(
-    values = c(16, 18),
-    name = "Fish Presence",
-    labels = c("No Fish", "Fish")
+    values = c("No Fish" = 21, "Fish" = 21),  # Both use fillable circles
+    name = "Fish Presence"
   ) +
-  coord_cartesian(ylim = c(0, 1.5)) +
-  
-  # Theme
-  theme_minimal(base_size = 16) +
+  scale_y_continuous(
+    limits = c(0, 0.5),
+    breaks = seq(0, 0.5, by = 0.1),
+    expand = c(0, 0)
+  ) +
+
+  # Theme - publication quality
+
+  theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
-    axis.title = element_text(size = 20, face = "bold"),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16, face = "bold", margin = margin(t = 12)),
+    axis.title.y = element_text(size = 16, face = "bold", margin = margin(r = 12)),
+    axis.text.x = element_text(size = 14, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
     legend.position = "top",
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(1.5, "lines"),
-    legend.margin = margin(0, 0, 10, 0),
-    legend.box.spacing = unit(0.5, "lines"),
-    axis.line.x = element_line(color = "black", size = 0.5),
-    axis.line.y = element_line(color = "black", size = 0.5)
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1.2, "lines"),
+    legend.margin = margin(0, 0, 8, 0),
+    legend.box.spacing = unit(0.3, "lines"),
+    legend.background = element_rect(fill = "white", color = NA),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.margin = margin(10, 15, 10, 10)
   ) +
   labs(
-    y = expression("Growth Rate (" * cm^{-2} ~ day^{-1} * ")"),
+    y = expression("Growth Rate (mg " * cm^{-2} ~ day^{-1} * ")"),
     x = "Wound Size"
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    fill = guide_legend(override.aes = list(size = 4, alpha = 1)),
+    shape = guide_legend(override.aes = list(size = 4, alpha = 1))
   )
 
 print(growth_rate_plot)
@@ -683,24 +859,24 @@ ggsave(
 )
 ```
 
-## DHARMa Diagnostics: Allometric Model
+## DHARMa Diagnostics: Full Model (Primary Analysis)
 
 ```{r dharma-allometric}
-cat("\n\n=== Diagnostics for Allometric Scaling Model ===\n\n")
-sim_allometric <- simulateResiduals(fittedModel = model_lmer, n = 1000)
+cat("\n\n=== Diagnostics for Full Model (Primary Analysis) ===\n\n")
+sim_full <- simulateResiduals(fittedModel = model_full, n = 1000)
 
 png(
-  here("figures", "diagnostics", "allometric_dharma.png"),
+  here("figures", "diagnostics", "growth_full_model_dharma.png"),
   width = 7, height = 6, units = "in", res = 600, bg = "white"
 )
-plot(sim_allometric, main = "DHARMa Diagnostics: Allometric Scaling Model")
+plot(sim_full, main = "DHARMa Diagnostics: Full Model with Treatment Effects")
 dev.off()
 
 cat("\nDispersion test:\n")
-print(testDispersion(sim_allometric))
+print(testDispersion(sim_full))
 
 cat("\nOutlier test:\n")
-print(testOutliers(sim_allometric))
+print(testOutliers(sim_full))
 ```
 
 ## Model Summary Statistics
@@ -715,7 +891,211 @@ print(summary(residuals(mod_int_sa, type = "pearson")))
 
 ------------------------------------------------------------------------
 
-# 9. Session Information
+# 9. Combined Figure: Growth Rate & Photosynthetic Efficiency
+
+```{r combined-figure, fig.width=10, fig.height=5}
+# Load PAM data for combined figure
+pam_data <- read.csv(here("data", "pam_undisturbed_healed_tissue_wound_no_wound.csv"))
+
+# Prepare PAM data with proper factor levels
+pam_data <- pam_data %>%
+  mutate(
+    fish = factor(fish, levels = c("No Fish", "Fish")),
+    wound = factor(wound, levels = c("No Wound", "Small", "Large"))
+  )
+
+# Calculate PAM summary statistics
+pam_summary <- pam_data %>%
+  group_by(wound, fish) %>%
+  summarize(
+    mean_val = mean(fv_fm),
+    sd_val = sd(fv_fm),
+    n = n(),
+    se = sd_val / sqrt(n),
+    ci = qt(0.975, df = n - 1) * se,
+    ci_lower = mean_val - ci,
+    ci_upper = mean_val + ci,
+    .groups = "drop"
+  )
+
+# Gap size for PAM plot
+gap_size_pam <- 0.004
+
+# Create PAM plot (Panel B)
+pam_plot <- pam_data %>%
+  ggplot(aes(x = wound, y = fv_fm, color = fish, fill = fish, shape = fish)) +
+
+  # Individual data points
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6),
+    size = 2.5,
+    alpha = 0.5,
+    stroke = 0.8
+  ) +
+
+  # Lower whisker
+  geom_segment(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = ci_lower, yend = mean_val - gap_size_pam,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # Upper whisker
+  geom_segment(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        xend = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val + gap_size_pam, yend = ci_upper,
+        color = fish),
+    linewidth = 0.8,
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # White outline behind mean points
+  geom_point(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val),
+    size = 5.5,
+    color = "white",
+    inherit.aes = FALSE,
+    show.legend = FALSE
+  ) +
+
+  # Mean points
+  geom_point(
+    data = pam_summary,
+    aes(x = as.numeric(wound) + ifelse(fish == "No Fish", -0.15, 0.15),
+        y = mean_val, color = fish, fill = fish, shape = fish),
+    size = 4.5,
+    stroke = 1.2,
+    inherit.aes = FALSE
+  ) +
+
+  # Scales
+  scale_color_manual(
+    values = c("No Fish" = "#D55E00", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_fill_manual(
+    values = c("No Fish" = "white", "Fish" = "#0072B2"),
+    name = "Fish Presence"
+  ) +
+  scale_shape_manual(
+    values = c("No Fish" = 21, "Fish" = 21),
+    name = "Fish Presence"
+  ) +
+  scale_y_continuous(
+    limits = c(0.5, 0.75),
+    breaks = seq(0.5, 0.75, by = 0.05),
+    expand = c(0, 0.01)
+  ) +
+
+  # Theme
+  labs(
+    y = "Photosynthetic Efficiency (Fv/Fm)",
+    x = "Wound Size"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_text(size = 14, face = "bold", margin = margin(t = 10)),
+    axis.title.y = element_text(size = 14, margin = margin(r = 10)),  # Unbolded
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 11, color = "black"),
+    legend.position = "none",
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.margin = margin(10, 15, 10, 10)
+  )
+
+# Modify growth plot for combined figure (Panel A - top, no x-axis labels but keep ticks)
+growth_plot_combined <- growth_rate_plot +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_blank(),  # Remove x-axis title (shared with bottom panel)
+    axis.text.x = element_blank(),   # Remove x-axis labels (shared with bottom panel)
+    # Keep axis.ticks.x - ticks should remain visible
+    axis.title.y = element_text(size = 14, margin = margin(r = 10)),  # Unbolded
+    axis.text.y = element_text(size = 11, color = "black"),
+    plot.margin = margin(10, 15, 5, 10)  # Reduce bottom margin
+  )
+
+# Modify PAM plot for combined figure (Panel B - bottom, with x-axis label)
+pam_plot_combined <- pam_plot +
+  theme(
+    axis.title.x = element_text(size = 14, face = "bold", margin = margin(t = 10)),
+    axis.title.y = element_text(size = 14, margin = margin(r = 10)),  # Unbolded
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 11, color = "black"),
+    plot.margin = margin(5, 15, 10, 10)  # Reduce top margin
+  )
+
+# Combine plots using patchwork - VERTICAL layout (shared x-axis)
+library(patchwork)
+
+combined_plot <- (growth_plot_combined / pam_plot_combined) +
+  plot_annotation(tag_levels = 'A') &
+  theme(
+    plot.tag = element_text(size = 16, face = "bold"),
+    plot.tag.position = c(0.98, 0.95)  # Position tags on right side
+  )
+
+# Add shared legend at top
+# Extract legend from one of the plots
+legend_plot <- growth_rate_plot +
+  theme(
+    legend.position = "top",
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 11)
+  )
+
+legend <- cowplot::get_legend(legend_plot)
+
+# Final combined figure with legend
+final_combined <- cowplot::plot_grid(
+  legend,
+  combined_plot,
+  ncol = 1,
+  rel_heights = c(0.06, 1)
+)
+
+print(final_combined)
+
+# Save combined figure
+ggsave(
+  filename = here("figures", "combined_growth_pam_figure.pdf"),
+  plot = final_combined,
+  width = 7,
+  height = 8,
+  dpi = 600,
+  device = cairo_pdf
+)
+
+ggsave(
+  filename = here("figures", "combined_growth_pam_figure.png"),
+  plot = final_combined,
+  width = 7,
+  height = 8,
+  dpi = 300,
+  bg = "white"
+)
+
+cat("✓ Combined 2-panel figure saved:\n")
+cat("  - PDF: figures/combined_growth_pam_figure.pdf\n")
+cat("  - PNG: figures/combined_growth_pam_figure.png\n")
+```
+
+------------------------------------------------------------------------
+
+# 10. Session Information
 
 ```{r session-info}
 sessionInfo()
