@@ -283,31 +283,39 @@ We fit linear mixed-effects models to test how fish presence and wound size affe
 ## Fit Candidate Models
 
 ```{r fit-healing-models}
+# All models fit by maximum likelihood (REML = FALSE) so that likelihood
+# ratio tests comparing nested fixed-effect structures are valid
+# (per reviewer 1 request, RSBL-2026-0177 revision).
+
 # Full model with interaction
 rate_full <- lmer(
   healing_rate ~ fish * wound + (1 | tank),
-  data = percent_closure
+  data = percent_closure,
+  REML = FALSE
 )
 
 # Additive model (no interaction)
 rate_no_interaction <- lmer(
   healing_rate ~ fish + wound + (1 | tank),
-  data = percent_closure
+  data = percent_closure,
+  REML = FALSE
 )
 
 # Fish-only model
 rate_no_fish <- lmer(
   healing_rate ~ wound + (1 | tank),
-  data = percent_closure
+  data = percent_closure,
+  REML = FALSE
 )
 
 # Wound-only model
 rate_no_wound <- lmer(
   healing_rate ~ fish + (1 | tank),
-  data = percent_closure
+  data = percent_closure,
+  REML = FALSE
 )
 
-cat("✓ Models fitted successfully\n")
+cat("✓ Models fitted successfully (ML / REML = FALSE)\n")
 ```
 
 ## Model Comparison: Likelihood Ratio Tests
@@ -583,6 +591,133 @@ rate_avg_interaction <- percent_closure %>%
 cat("\n=== Healing Rate by Fish × Wound ===\n")
 print(rate_avg_interaction)
 ```
+
+---
+
+# 6b. Left-Censoring Sensitivity Check (R1.2)
+
+## Rationale
+
+Reviewer 1 asked whether any wounds reached complete closure (0 cm²) before
+day 21. When that happens, the healing rate calculated as `(initial − final) / 21`
+is biased downward, because the wound stopped shrinking partway through
+and we are still dividing by 21 days. We document the pattern here and discuss
+its direction.
+
+## Closure cross-tab
+
+```{r closure-crosstab}
+closure_xtab <- percent_closure %>%
+  filter(wound != "No Wound") %>%
+  mutate(fully_closed = wound_size_final == 0) %>%
+  count(fish, wound, fully_closed) %>%
+  pivot_wider(
+    names_from = fully_closed,
+    values_from = n,
+    values_fill = 0,
+    names_prefix = "closed_"
+  )
+
+closure_xtab %>%
+  gt() %>%
+  tab_header(
+    title = "Fragments reaching full closure (0 cm²) by day 21",
+    subtitle = "Counts by treatment"
+  ) %>%
+  cols_label(
+    fish = "Fish",
+    wound = "Wound size",
+    closed_FALSE = "Still open",
+    closed_TRUE = "Fully closed"
+  )
+
+cat("\nTotal fully closed: ",
+    sum(closure_xtab$closed_TRUE), " / ",
+    sum(closure_xtab$closed_TRUE) + sum(closure_xtab$closed_FALSE),
+    " wounded fragments\n", sep = "")
+```
+
+## Interpretation
+
+The censoring pattern is concentrated in the fish-present treatments
+(8/12 closed in Fish/Small and Fish/Large) and rarest in the no-fish/large
+treatment (only 3/12). Because the calculated rate uses a fixed 21-day
+denominator, it **underestimates** the true healing rate for the 25 fragments
+that reached zero before day 21 — and the underestimation is concentrated
+in the fish-present cells. The fish effect we report is therefore
+**conservative**: with a censoring-aware estimator the fish effect would be
+larger, not smaller.
+
+The full day-of-closure time series exists only for the daily-photographed
+subset (one fragment per wound × tank). A formal Cox-style or interval-censored
+re-analysis on that subset would tighten the inference and is a target for
+a future study with daily photography on all fragments.
+
+---
+
+# 6c. Turf-Algae Persistence: Fisher's Exact Test (R1.4)
+
+## Rationale
+
+The manuscript reports parenthetically that turf algae persisted on 7 of 8
+algae-colonized corals in no-fish tanks and 1 of 8 in fish tanks by day 21.
+Reviewer 1 asked for a formal test. We pull algae status from the PAM dataset
+(which records `algae` per coral at day 21) and run a Fisher's exact test on
+the 2 × 2 contingency among the 48 **wounded** corals.
+
+```{r fisher-algae}
+# Load algae status from PAM dataset and restrict to wounded corals
+pam_for_algae <- read_csv(
+  here("data", "pam_undisturbed_healed_tissue_wound_no_wound.csv"),
+  show_col_types = FALSE
+) %>%
+  clean_names() %>%
+  filter(wound != "No Wound") %>%
+  mutate(
+    algae_status = ifelse(algae == "yes", "persisted", "cleared")
+  )
+
+# 2x2 contingency (fish × algae status)
+tab_algae <- with(pam_for_algae, table(fish, algae_status))
+print(tab_algae)
+
+# Two-tailed Fisher's exact test
+fisher_algae <- fisher.test(tab_algae, alternative = "two.sided")
+print(fisher_algae)
+
+# Formatted report
+fisher_summary <- tibble(
+  Test = "Fisher's exact (fish × algae persistence, wounded corals only)",
+  `Odds Ratio` = round(fisher_algae$estimate, 3),
+  `95% CI` = paste0("[",
+                    round(fisher_algae$conf.int[1], 3), ", ",
+                    round(fisher_algae$conf.int[2], 3), "]"),
+  `p-value` = format.pval(fisher_algae$p.value, digits = 3)
+)
+
+fisher_summary %>%
+  gt() %>%
+  tab_header(
+    title = "Turf algae persistence by fish treatment (day 21)",
+    subtitle = "Wounded corals only (n = 48)"
+  )
+```
+
+The odds ratio < 1 means fragments with fish were *less* likely to have
+persistent algae than fragments without fish. Reciprocal: 1/OR gives the
+no-fish-vs-fish odds, which is the more intuitive direction.
+
+## Mechanism discussion (for prose)
+
+The design cannot separate two non-mutually-exclusive mechanisms for this
+effect:
+1. Fish directly excluding algae via territorial behaviour or grazing.
+2. Faster wound closure in fish-present treatments shortening the window
+   during which exposed substrate is available for algal colonization.
+
+Both pathways predict the observed pattern; resolving their relative
+contribution would require a design that decouples healing rate from the
+presence of the resident fish (e.g., fish present briefly then removed).
 
 ---
 

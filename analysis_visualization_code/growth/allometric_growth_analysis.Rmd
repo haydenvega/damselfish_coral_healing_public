@@ -593,22 +593,32 @@ print(scaled_by_interaction)
 ## Fit Growth Rate Models
 
 ```{r fit-growth-rate-models}
+# All models fit by maximum likelihood (REML = FALSE) for LRT validity
+# (per reviewer 1 request, RSBL-2026-0177 revision). The allometric ANCOVA
+# model_full above was already ML-fit and is the primary growth analysis;
+# these per-SA-per-day models are a secondary parameterization.
+
 # Full model with interaction
-mod_int_sa <- lmer(bw_sa_time ~ fish * wound + (1 | tank), data = bw_sa_stats)
+mod_int_sa <- lmer(bw_sa_time ~ fish * wound + (1 | tank),
+                   data = bw_sa_stats, REML = FALSE)
 
 # Additive model
-mod_add_sa <- lmer(bw_sa_time ~ fish + wound + (1 | tank), data = bw_sa_stats)
+mod_add_sa <- lmer(bw_sa_time ~ fish + wound + (1 | tank),
+                   data = bw_sa_stats, REML = FALSE)
 
 # Fish-only
-mod_fish_sa <- lmer(bw_sa_time ~ fish + (1 | tank), data = bw_sa_stats)
+mod_fish_sa <- lmer(bw_sa_time ~ fish + (1 | tank),
+                    data = bw_sa_stats, REML = FALSE)
 
 # Wound-only
-mod_wound_sa <- lmer(bw_sa_time ~ wound + (1 | tank), data = bw_sa_stats)
+mod_wound_sa <- lmer(bw_sa_time ~ wound + (1 | tank),
+                     data = bw_sa_stats, REML = FALSE)
 
 # Null
-mod_null_sa <- lmer(bw_sa_time ~ 1 + (1 | tank), data = bw_sa_stats)
+mod_null_sa <- lmer(bw_sa_time ~ 1 + (1 | tank),
+                    data = bw_sa_stats, REML = FALSE)
 
-cat("✓ Growth rate models fitted\n")
+cat("✓ Growth rate models fitted (ML / REML = FALSE)\n")
 ```
 
 ## Growth Rate Model Comparison
