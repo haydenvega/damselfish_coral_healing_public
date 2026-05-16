@@ -207,10 +207,25 @@ cat("  - Binary healing data:", nrow(wound_closure_clean), "corals\n")
 
 ## Clean Healing Rate Data
 
+One fragment (coral #95; No Fish, Small wound, tank 2) exhibited net
+tissue loss over the experiment: its wound expanded from 1.02 cm² to
+2.09 cm² (`percent_healed` = −105%), yielding a negative "healing rate."
+This is a qualitatively distinct outcome (wound expansion / partial
+necrosis) rather than slow healing, so it is excluded from the
+wound-healing-rate analysis and reported explicitly in the Methods
+(n = 47 fragments retained for the healing-rate models). The exclusion
+is disclosed rather than silently filtered, per Referee 1's emphasis on
+statistical transparency.
+
 ```{r clean-percent-data}
-# Process continuous healing rate data
+# Process continuous healing rate data.
+# Exclude coral #95: wound EXPANDED (1.02 -> 2.09 cm2; percent_healed = -105%).
+# This is net tissue loss / necrosis, a different outcome than slow
+# healing, not a data-entry error. Exclusion is disclosed in the
+# manuscript Methods (n = 47 retained). See Section 4 for the
+# interaction LRT and 6b for the censoring sensitivity context.
 percent_closure <- percent_closure %>%
-  filter(percent_healed >= 0) %>%  # Remove invalid percentages
+  filter(percent_healed >= 0) %>%  # excludes coral #95 (net tissue loss; see note above)
   prep_treatments() %>%
   mutate(tank = as.factor(tank))
 
