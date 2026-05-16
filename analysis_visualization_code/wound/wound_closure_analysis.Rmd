@@ -10,6 +10,9 @@ output:
     code_folding: hide
     theme: flatly
     highlight: tango
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -27,30 +30,32 @@ knitr::opts_chunk$set(
 
 ## Study Design
 
-**Research Question**: Do damselfish (*Dascyllus flavicaudus*) accelerate coral wound healing rates in *Pocillopora* spp.?
+**Research Question**: Do damselfish (*Dascyllus flavicaudus*)
+accelerate coral wound healing rates in *Pocillopora* spp.?
 
 **Experimental Design**:
 
-- **Factors**: Fish presence (Present/Absent) × Wound size (None/Small/Large)
-- **Sample size**: 72 coral fragments
-- **Duration**: 21 days
-- **Location**: Mo'orea, French Polynesia
-- **Response variables**:
-  - Healing rate (cm²/day)
-  - Percent wound closure
-  - Binary healing outcome
+-   **Factors**: Fish presence (Present/Absent) × Wound size
+    (None/Small/Large)
+-   **Sample size**: 72 coral fragments
+-   **Duration**: 21 days
+-   **Location**: Mo'orea, French Polynesia
+-   **Response variables**:
+    -   Healing rate (cm²/day)
+    -   Percent wound closure
+    -   Binary healing outcome
 
 ## Analysis Overview
 
 This document contains:
 
-1. **Data Import & Cleaning**
-2. **Exploratory Data Analysis**
-3. **Mixed-Effects Models** (healing rate)
-4. **Publication Figure Generation**
-5. **Model Diagnostics**
+1.  **Data Import & Cleaning**
+2.  **Exploratory Data Analysis**
+3.  **Mixed-Effects Models** (healing rate)
+4.  **Publication Figure Generation**
+5.  **Model Diagnostics**
 
----
+------------------------------------------------------------------------
 
 # 1. Setup & Data Import
 
@@ -138,7 +143,7 @@ cat("  - Wound closure binary data:", nrow(wound_closure), "observations\n")
 cat("  - Percent closure data:", nrow(percent_closure), "observations\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 2. Data Preparation
 
@@ -238,7 +243,7 @@ cat("\n=== Proportion Healed by Treatment ===\n")
 print(wound_prop)
 ```
 
----
+------------------------------------------------------------------------
 
 # 3. Wound Size Characterization
 
@@ -267,18 +272,18 @@ wounds_avgs %>%
   )
 ```
 
----
+------------------------------------------------------------------------
 
 # 4. Statistical Models: Healing Rate
 
 ## Model Description
 
-We fit linear mixed-effects models to test how fish presence and wound size affect healing rate (continuous response variable in cm²/day).
+We fit linear mixed-effects models to test how fish presence and wound
+size affect healing rate (continuous response variable in cm²/day).
 
-**Model structure**:
-- **Fixed effects**: Fish presence, Wound size, and their interaction
-- **Random effect**: Tank (accounts for shared tank environment)
-- **Response**: Healing rate (cm²/day)
+**Model structure**: - **Fixed effects**: Fish presence, Wound size, and
+their interaction - **Random effect**: Tank (accounts for shared tank
+environment) - **Response**: Healing rate (cm²/day)
 
 ## Fit Candidate Models
 
@@ -387,7 +392,7 @@ cat("\n=== Fixed Effects (Full Model) ===\n")
 print(tidy(rate_full, effects = "fixed", conf.int = TRUE))
 ```
 
----
+------------------------------------------------------------------------
 
 # 5. Publication Figure: Healing Rate
 
@@ -547,7 +552,7 @@ ggsave(
 cat("✓ Figure saved to figures/wound_closure/\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 6. Summary Statistics by Treatment
 
@@ -592,17 +597,17 @@ cat("\n=== Healing Rate by Fish × Wound ===\n")
 print(rate_avg_interaction)
 ```
 
----
+------------------------------------------------------------------------
 
 # 6b. Left-Censoring Sensitivity Check (R1.2)
 
 ## Rationale
 
-Reviewer 1 asked whether any wounds reached complete closure (0 cm²) before
-day 21. When that happens, the healing rate calculated as `(initial − final) / 21`
-is biased downward, because the wound stopped shrinking partway through
-and we are still dividing by 21 days. We document the pattern here and discuss
-its direction.
+Reviewer 1 asked whether any wounds reached complete closure (0 cm²)
+before day 21. When that happens, the healing rate calculated as
+`(initial − final) / 21` is biased downward, because the wound stopped
+shrinking partway through and we are still dividing by 21 days. We
+document the pattern here and discuss its direction.
 
 ## Closure cross-tab
 
@@ -640,30 +645,32 @@ cat("\nTotal fully closed: ",
 ## Interpretation
 
 The censoring pattern is concentrated in the fish-present treatments
-(8/12 closed in Fish/Small and Fish/Large) and rarest in the no-fish/large
-treatment (only 3/12). Because the calculated rate uses a fixed 21-day
-denominator, it **underestimates** the true healing rate for the 25 fragments
-that reached zero before day 21 — and the underestimation is concentrated
-in the fish-present cells. The fish effect we report is therefore
-**conservative**: with a censoring-aware estimator the fish effect would be
-larger, not smaller.
+(8/12 closed in Fish/Small and Fish/Large) and rarest in the
+no-fish/large treatment (only 3/12). Because the calculated rate uses a
+fixed 21-day denominator, it **underestimates** the true healing rate
+for the 25 fragments that reached zero before day 21 — and the
+underestimation is concentrated in the fish-present cells. The fish
+effect we report is therefore **conservative**: with a censoring-aware
+estimator the fish effect would be larger, not smaller.
 
-The full day-of-closure time series exists only for the daily-photographed
-subset (one fragment per wound × tank). A formal Cox-style or interval-censored
-re-analysis on that subset would tighten the inference and is a target for
-a future study with daily photography on all fragments.
+The full day-of-closure time series exists only for the
+daily-photographed subset (one fragment per wound × tank). A formal
+Cox-style or interval-censored re-analysis on that subset would tighten
+the inference and is a target for a future study with daily photography
+on all fragments.
 
----
+------------------------------------------------------------------------
 
 # 6c. Turf-Algae Persistence: Fisher's Exact Test (R1.4)
 
 ## Rationale
 
-The manuscript reports parenthetically that turf algae persisted on 7 of 8
-algae-colonized corals in no-fish tanks and 1 of 8 in fish tanks by day 21.
-Reviewer 1 asked for a formal test. We pull algae status from the PAM dataset
-(which records `algae` per coral at day 21) and run a Fisher's exact test on
-the 2 × 2 contingency among the 48 **wounded** corals.
+The manuscript reports parenthetically that turf algae persisted on 7 of
+8 algae-colonized corals in no-fish tanks and 1 of 8 in fish tanks by
+day 21. Reviewer 1 asked for a formal test. We pull algae status from
+the PAM dataset (which records `algae` per coral at day 21) and run a
+Fisher's exact test on the 2 × 2 contingency among the 48 **wounded**
+corals.
 
 ```{r fisher-algae}
 # Load algae status from PAM dataset and restrict to wounded corals
@@ -703,23 +710,23 @@ fisher_summary %>%
   )
 ```
 
-The odds ratio < 1 means fragments with fish were *less* likely to have
+The odds ratio \< 1 means fragments with fish were *less* likely to have
 persistent algae than fragments without fish. Reciprocal: 1/OR gives the
 no-fish-vs-fish odds, which is the more intuitive direction.
 
 ## Mechanism discussion (for prose)
 
-The design cannot separate two non-mutually-exclusive mechanisms for this
-effect:
-1. Fish directly excluding algae via territorial behaviour or grazing.
-2. Faster wound closure in fish-present treatments shortening the window
-   during which exposed substrate is available for algal colonization.
+The design cannot separate two non-mutually-exclusive mechanisms for
+this effect: 1. Fish directly excluding algae via territorial behaviour
+or grazing. 2. Faster wound closure in fish-present treatments
+shortening the window during which exposed substrate is available for
+algal colonization.
 
 Both pathways predict the observed pattern; resolving their relative
 contribution would require a design that decouples healing rate from the
 presence of the resident fish (e.g., fish present briefly then removed).
 
----
+------------------------------------------------------------------------
 
 # 7. Model Diagnostics
 
@@ -916,7 +923,7 @@ influence_measures <- influence(rate_full, obs = TRUE)
 cat("Cook's distance threshold (4/n):", 4/nobs(rate_full), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 8. Session Information
 
@@ -924,7 +931,7 @@ cat("Cook's distance threshold (4/n):", 4/nobs(rate_full), "\n")
 sessionInfo()
 ```
 
----
+------------------------------------------------------------------------
 
 **Analysis Complete** ✓
 
