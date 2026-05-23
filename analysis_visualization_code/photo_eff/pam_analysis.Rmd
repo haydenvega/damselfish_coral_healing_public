@@ -796,7 +796,7 @@ cat("  - PDF: figures/pam/summary_line_fv_fm_by_wound_fish.pdf (600 DPI)\n")
 cat("  - PNG: figures/pam/summary_line_fv_fm_by_wound_fish.png (300 DPI)\n")
 ```
 
-## Supplementary Figure: Reproduction of Main Figure with Error Bars, Algal+ Fragments Excluded
+## Supplementary Figure S4: Reproduction of Main Figure with Error Bars, Algal+ Fragments Excluded
 
 ```{r}
  pam_summary_no <- pam_no_algae %>%
