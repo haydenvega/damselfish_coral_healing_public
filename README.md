@@ -3,7 +3,7 @@
 # Damselfish-Coral Healing: Experimental Dataset & Analysis Code
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![DOI](https://img.shields.io/badge/DOI-pending-blue.svg)](#)
+[![DOI](https://zenodo.org/badge/1084597187.svg)](https://doi.org/10.5281/zenodo.20361853)
 [![R Version](https://img.shields.io/badge/R-%E2%89%A54.5.0-blue.svg)](https://www.r-project.org/)
 
 **Supporting:** Vega, H. & Stier, A. (2026). *Coral-Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Biology Letters].
