@@ -6,12 +6,12 @@
 [![DOI](https://img.shields.io/badge/DOI-pending-blue.svg)](#)
 [![R Version](https://img.shields.io/badge/R-%E2%89%A54.5.0-blue.svg)](https://www.r-project.org/)
 
-**Supporting:** Vega, H. & Stier, A. (2025). *Coral-Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Journal pending].
+**Supporting:** Vega, H. & Stier, A. (2026). *Coral-Associated Fishes Accelerate Coral Wound Healing and Photosynthetic Recovery*. [Biology Letters].
 
 **Authors:** Hayden Vega (haydenvega@ucsb.edu) & Adrian Stier (astier@ucsb.edu)
 **Institution:** University of California Santa Barbara
 **Version:** 1.0
-**Last Updated:** October 2024
+**Last Updated:** May 2026
 
 ---
 
